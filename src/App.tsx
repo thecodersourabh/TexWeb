@@ -5,6 +5,7 @@ import { ChatBot } from "./components/ChatBot";
 import { Cart } from "./components/Cart";
 import { About } from "./pages/About";
 import { Home } from "./pages/Home";
+import { Design } from "./pages/Design";
 import { CartProvider } from "./context/CartContext";
 
 // Configure future flags for React Router v7
@@ -32,6 +33,7 @@ function App() {
           <Routes>
             <Route path="/" element={<Home />} />
             <Route path="/about" element={<About />} />
+            <Route path="/design" element={<Design />} />
           </Routes>
           <Cart />
           <ChatBot />

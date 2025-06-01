@@ -1,6 +1,6 @@
-import { Link } from 'react-router-dom';
-import { Scissors, Heart, ShoppingCart } from 'lucide-react';
-import { useCart } from '../context/CartContext';
+import { Link } from "react-router-dom";
+import { Scissors, Heart, ShoppingCart } from "lucide-react";
+import { useCart } from "../context/CartContext";
 
 export function Navigation() {
   const { setIsCartOpen, items } = useCart();
@@ -13,15 +13,22 @@ export function Navigation() {
             <span className="text-xl font-semibold">FabricCraft</span>
           </Link>
           <div className="hidden md:flex space-x-6">
-            <Link to="/" className="text-gray-600 hover:text-gray-900">Home</Link>
-            <Link to="/about" className="text-gray-600 hover:text-gray-900">About</Link>
+            <Link to="/" className="text-gray-600 hover:text-gray-900">
+              Home
+            </Link>
+            <Link to="/about" className="text-gray-600 hover:text-gray-900">
+              About
+            </Link>
+            <Link to="/design" className="text-gray-600 hover:text-gray-900">
+              Create Own Design
+            </Link>
           </div>
         </div>
         <div className="flex items-center space-x-6">
           <button className="text-gray-600 hover:text-gray-900">
             <Heart className="h-5 w-5" />
           </button>
-          <button 
+          <button
             onClick={() => setIsCartOpen(true)}
             className="text-gray-600 hover:text-gray-900 relative"
           >
