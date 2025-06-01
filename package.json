@@ -1,8 +1,10 @@
 {
-  "name": "web-textile",
+  "name": "texweb",
   "private": true,
   "version": "0.0.0",
   "type": "module",
+  "homepage": "https://thecodersourabh.github.io/TexWeb/",
+  "license": "MIT",
   "scripts": {
     "dev": "vite",
     "build": "vite build",
