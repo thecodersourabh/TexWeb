@@ -1,7 +1,9 @@
 import { Link } from 'react-router-dom';
 import { Scissors, Heart, ShoppingCart } from 'lucide-react';
+import { useCart } from '../context/CartContext';
 
 export function Navigation() {
+  const { setIsCartOpen, items } = useCart();
   return (
     <nav className="bg-white border-b border-gray-100 px-4 py-3">
       <div className="max-w-7xl mx-auto flex items-center justify-between">
@@ -19,8 +21,16 @@ export function Navigation() {
           <button className="text-gray-600 hover:text-gray-900">
             <Heart className="h-5 w-5" />
           </button>
-          <button className="text-gray-600 hover:text-gray-900">
+          <button 
+            onClick={() => setIsCartOpen(true)}
+            className="text-gray-600 hover:text-gray-900 relative"
+          >
             <ShoppingCart className="h-5 w-5" />
+            {items.length > 0 && (
+              <span className="absolute -top-2 -right-2 bg-rose-600 text-white text-xs w-5 h-5 rounded-full flex items-center justify-center">
+                {items.length}
+              </span>
+            )}
           </button>
         </div>
       </div>

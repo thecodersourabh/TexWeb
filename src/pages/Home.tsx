@@ -1,7 +1,9 @@
 import { BedDouble, Ruler, Scissors, Sparkles } from "lucide-react";
 import { CategoryCard } from "../components/CategoryCard";
+import { useCart } from "../context/CartContext";
 
 export const Home = () => {
+  const { addItem } = useCart();
   return (
     <>
       {/* Hero Section */}
@@ -54,8 +56,15 @@ export const Home = () => {
                   <Scissors className="h-5 w-5" />
                   <span>100% Cotton</span>
                 </div>
-              </div>
-              <button className="bg-rose-600 text-white px-6 py-3 rounded-full hover:bg-rose-700 transition">
+              </div>              <button 
+                onClick={() => addItem({
+                  id: "cotton-sateen",
+                  name: "Extra-Wide Cotton Sateen Fabric",
+                  price: 24.99,
+                  image: "https://images.unsplash.com/photo-1544367567-0f2fcb009e0b?auto=format&fit=crop&q=80"
+                })}
+                className="bg-rose-600 text-white px-6 py-3 rounded-full hover:bg-rose-700 transition"
+              >
                 Shop Now
               </button>
             </div>
