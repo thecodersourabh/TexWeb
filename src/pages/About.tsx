@@ -84,7 +84,13 @@ export function About() {
   );
 }
 
-function FeatureCard({ icon, title, description }) {
+type FeatureCardProps = {
+  icon: React.ReactNode;
+  title: string;
+  description: string;
+};
+
+const FeatureCard = ({ icon, title, description }: FeatureCardProps) => {
   return (
     <div className="bg-white p-6 rounded-xl shadow-sm hover:shadow-md transition">
       <div className="text-rose-600 mb-4">{icon}</div>
