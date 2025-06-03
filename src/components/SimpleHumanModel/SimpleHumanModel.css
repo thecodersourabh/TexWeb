@@ -1,15 +1,16 @@
 .human-model-canvas-container {
   width: 100%;
   aspect-ratio: 16/9;
-  min-height: 350px;
-  border-radius: 1rem;
+  min-height: 35%; 
+  border-radius: 5%; 
   background: #bebec0;
   overflow: hidden;
   position: relative;
   display: flex;
-  justify-content: center; /* Center horizontally */
-  align-items: center; /* Center vertically */
+  justify-content: center; 
+  align-items: center; 
 }
+
 .human-model-canvas-container canvas {
   width: 100% !important;
   height: 100% !important;
@@ -24,4 +25,12 @@
 
 .human-model-canvas:active {
   cursor: grabbing; 
+}
+
+@media (max-width: 768px) {
+  .human-model-canvas-container {
+    aspect-ratio: auto; 
+    min-height: 25%; 
+    border-radius: 3%; 
+  }
 }

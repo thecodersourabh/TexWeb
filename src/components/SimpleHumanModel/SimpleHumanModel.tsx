@@ -73,10 +73,10 @@ export function SimpleHumanModel(props: IHumanModelProps) {
 
   useEffect(() => {
     if (controlsRef.current) {
-      controlsRef.current.target.set(0, 0, 0); // Reset target to center dynamically
+      controlsRef.current.target.set(0, 0, 0); 
       controlsRef.current.update(); // Update controls
     }
-  }, [props.color]); // Re-run when color changes
+  }, [props.color]); 
 
   return (
     <div className="human-model-canvas-container">
