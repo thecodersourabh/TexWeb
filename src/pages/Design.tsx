@@ -13,7 +13,7 @@ interface Measurements {
 }
 
 interface DesignSettings {
-  itemType: 'shirt' | 'pants' | 'other';
+  itemType: 'T-shirt' | 'pants' | 'other';
   color: string;
   measurements: Measurements;
   standardSize: string; // For reference
@@ -32,7 +32,7 @@ const defaultMeasurements: Measurements = {
 
 export function Design() {
   const [settings, setSettings] = useState<DesignSettings>({
-    itemType: 'shirt',
+    itemType: 'T-shirt',
     color: '#000000',
     standardSize: 'M',
     measurements: defaultMeasurements,
@@ -68,7 +68,7 @@ export function Design() {
 
     return [
       ...commonFields,
-      ...(settings.itemType === 'shirt' ? shirtFields : []),
+      ...(settings.itemType === 'T-shirt' ? shirtFields : []),
       ...(settings.itemType === 'pants' ? pantsFields : []),
     ];
   };
@@ -94,7 +94,7 @@ export function Design() {
                   onChange={(e) => setSettings({ ...settings, itemType: e.target.value as any })}
                   className="w-full border border-gray-300 rounded-md px-3 py-2"
                 >
-                  <option value="shirt">Shirt</option>
+                  <option value="shirt">T-Shirt</option>
                   <option value="pants">Pants</option>
                 </select>
               </div>
