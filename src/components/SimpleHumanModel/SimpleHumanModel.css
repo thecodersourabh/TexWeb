@@ -18,3 +18,10 @@
   top: 0;
   left: 0;
 }
+.human-model-canvas {
+  cursor: pointer; 
+}
+
+.human-model-canvas:active {
+  cursor: grabbing; 
+}

@@ -161,15 +161,15 @@ export function Design() {
 
         <div className="md:col-span-2 bg-white p-6 rounded-lg shadow-md">
           <h2 className="text-xl font-semibold mb-4">3D Preview</h2>
-          <div className="bg-gray-100 rounded-lg flex items-center justify-center" id ="design-model-container">
-              <SimpleHumanModel
+          <div className="human-model-canvas" id ="design-model-container">
+              <SimpleHumanModel 
                 color={settings.color}
                 chest={settings.measurements.chest}
                 waist={settings.measurements.waist}
                 hips={settings.measurements.hips}
                 height={settings.itemType === 'pants' ? (settings.measurements.inseam || 81) + 90 : 170}
               />
-            </div>
+          </div>
           
           <div className="flex items-center justify-between mt-6">
             <button className="bg-gray-100 text-gray-600 px-6 py-2 rounded-md hover:bg-gray-200 transition-colors">
