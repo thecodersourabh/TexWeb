@@ -1,5 +1,6 @@
 import { Measurements, MeasurementField } from "../../types/design";
 import { MEASUREMENT_RANGE } from "../../constants/measurements";
+import { RangeInput } from "./RangeInput";
 
 interface MeasurementSettingsProps {
   measurements: Measurements;
@@ -75,47 +76,17 @@ export function MeasurementSettings({
         <h2 className="section-title">Size</h2>
       </div>
       <div className="setting-fields">
-        {getMeasurementFields().map((field) => (
-          <div key={field.key} className="setting-field">
-            <label className="flex justify-between">
-              <span>{field.label}</span>
-            </label>
-            <div className="measurement-row">
-              <div className="range-container">
-                <input
-                  type="range"
-                  value={measurements[field.key]}
-                  onChange={(e) =>
-                    onMeasurementChange(
-                      field.key,
-                      parseFloat(e.target.value)
-                    )
-                  }
-                  min={field.range?.min || 0}
-                  max={field.range?.max || 50}
-                  step="0.5"
-                  className="range-input"
-                />
-              </div>
-              <input
-                type="number"
-                value={
-                  measurements[field.key] !== undefined
-                    ? measurements[field.key]!.toFixed(1)
-                    : ""
-                }
-                onChange={(e) =>
-                  onMeasurementChange(
-                    field.key,
-                    parseFloat(e.target.value)
-                  )
-                }
-                min={field.range?.min || 0}
-                max={field.range?.max || 50}
-                step="0.5"
-                className="compact-input"
-              />
-            </div>
+        {getMeasurementFields().map((field) => (          <div key={field.key} className="setting-field">
+            <RangeInput
+              value={measurements[field.key] || 0}
+              onChange={(value) => onMeasurementChange(field.key, value)}
+              min={field.range?.min || 0}
+              max={field.range?.max || 50}
+              step={0.5}
+              label={field.label}
+              unit=" in"
+              showValue={true}
+            />
           </div>
         ))}
       </div>
