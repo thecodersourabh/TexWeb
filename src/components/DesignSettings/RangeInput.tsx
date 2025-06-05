@@ -29,11 +29,13 @@ export const RangeInput = memo(function RangeInput({
   const rafRef = useRef<number>();
   const [localValue, setLocalValue] = useState(value);
   const [isDragging, setIsDragging] = useState(false);
+  const lastUpdateRef = useRef(value);
 
-  // Sync local value with prop value only when not dragging
+  // Sync local value with prop value when not dragging
   useEffect(() => {
     if (!isDragging) {
       setLocalValue(value);
+      lastUpdateRef.current = value;
     }
   }, [value, isDragging]);
 
@@ -64,15 +66,24 @@ export const RangeInput = memo(function RangeInput({
   const updateValue = useCallback((newValue: number) => {
     const clampedValue = Math.min(Math.max(newValue, min), max);
     setLocalValue(clampedValue);
-    if (!isDragging) {
+    
+    // Always send updates while dragging to maintain responsive UI
+    if (isDragging) {
       debouncedOnChange(clampedValue);
+      lastUpdateRef.current = clampedValue;
+    } else {
+      // Immediate update when not dragging
+      onChange(clampedValue);
     }
-  }, [min, max, debouncedOnChange, isDragging]);
+  }, [min, max, isDragging, onChange, debouncedOnChange]);
 
   const handleDragEnd = useCallback(() => {
     setIsDragging(false);
-    debouncedOnChange(localValue);
-  }, [debouncedOnChange, localValue]);
+    // Ensure the final value is sent without debouncing
+    if (lastUpdateRef.current !== localValue) {
+      onChange(localValue);
+    }
+  }, [localValue, onChange]);
 
   const handleMouseDown = useCallback((e: React.MouseEvent) => {
     e.preventDefault();
