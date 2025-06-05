@@ -1,113 +1,104 @@
-import { Canvas, useFrame } from '@react-three/fiber';
-import { OrbitControls, Center, useGLTF, AccumulativeShadows, RandomizedLight, Environment } from '@react-three/drei';
+import { Canvas } from '@react-three/fiber';
+import { OrbitControls, Center, Environment, useGLTF } from '@react-three/drei';
 import './SimpleHumanModel.css';
-import { easing } from 'maath';
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
+import { ManGLBModel } from './ManGLBModel';
+import { Backdrop } from './Backdrop';
+import { CameraRig } from './CameraRig';
 
 interface IHumanModelProps {
   color: string;
-  chest: number;
-  waist: number;
-  hips: number;
-  height: number;
+  chest: number;  
+  waist: number;  
+  hips: number;   
+  height: number; 
 }
 
-function ManGLBModel({ color }: { color: string }) {
-  const { nodes } = useGLTF('/TexWeb/shirt_baked_collapsed.glb') as any;
-
-  useFrame((_, delta) => {
-    if (nodes.T_Shirt_male && nodes.T_Shirt_male.material) {
-      easing.dampC(nodes.T_Shirt_male.material.color, color, 0.25, delta); // Smoothly update color
-    }
-  });
-
-  return (
-    <mesh
-      castShadow
-      geometry={nodes.T_Shirt_male.geometry}
-      material={nodes.T_Shirt_male.material}
-      position={[0, 0, 0]} 
-      rotation={[0, 0, 0]}
-      scale={1}
-      dispose={null}
-    />
-  );
-}
-
-function Backdrop() {
-  const shadows = useRef<any>(null);
-  useFrame((state, delta) => {
-    if (shadows.current) {
-      easing.dampC(shadows.current.getMesh().material.color, '#ffffff', 0.25, delta); // Replace '#ffffff' with your desired color
-    }
-  });
-
-  return (
-    <AccumulativeShadows
-      ref={shadows}
-      temporal
-      frames={60}
-      alphaTest={0.85}
-      scale={5}
-      resolution={2048}
-      rotation={[Math.PI / 2, 0, 0]}
-      position={[0, 0, -0.14]}
-    >
-      <RandomizedLight amount={4} radius={9} intensity={0.55 * Math.PI} ambient={0.25} position={[5, 5, -10]} />
-      <RandomizedLight amount={4} radius={5} intensity={0.25 * Math.PI} ambient={0.55} position={[-5, 5, -9]} />
-    </AccumulativeShadows>
-  );
-}
-
-function CameraRig({ children }: { children: React.ReactNode }) {
-  const group = useRef<any>(null);
-  useFrame((state, delta) => {
-    easing.damp3(state.camera.position, [0, 0, 2], 0.25, delta);
-    easing.dampE(group.current.rotation, [state.pointer.y / 10, -state.pointer.x / 5, 0], 0.25, delta);
-  });
-  return <group ref={group}>{children}</group>;
-}
+const inchToCm = (inch: number) => inch * 2.54;
 
 export function SimpleHumanModel(props: IHumanModelProps) {
   const controlsRef = useRef<any>(null);
+  const [isMobile, setIsMobile] = useState(window.innerWidth <= 768);
 
+  // Handle resize events
+  useEffect(() => {
+    const handleResize = () => {
+      setIsMobile(window.innerWidth <= 768);
+    };
+
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
+
+  // Optimize camera and controls setup
   useEffect(() => {
     if (controlsRef.current) {
-      controlsRef.current.target.set(0, 0, 0); 
-      controlsRef.current.update(); // Update controls
+      // Reset camera position
+      controlsRef.current.target.set(0, 0, 0);
+
+      // Optimize for mobile vs desktop
+      if (isMobile) {
+        controlsRef.current.minDistance = 1.5;
+        controlsRef.current.maxDistance = 4;
+        controlsRef.current.enablePan = false;
+      } else {
+        controlsRef.current.minDistance = 2;
+        controlsRef.current.maxDistance = 5;
+        controlsRef.current.enablePan = true;
+      }
+
+      controlsRef.current.update();
     }
-  }, [props.color]); 
+  }, [isMobile]);
+
+  // Convert measurements to centimeters for the 3D model
+  const modelProps = {
+    color: props.color,
+    chest: inchToCm(props.chest),
+    waist: inchToCm(props.waist),
+    hips: inchToCm(props.hips),
+    height: inchToCm(props.height),
+  };
 
   return (
     <div className="human-model-canvas-container">
       <Canvas
         shadows={true}
-        camera={{ position: [0, 0, 2.5], fov: 25 }}
-        gl={{ preserveDrawingBuffer: true }}
-        eventSource={document.getElementById('root') || undefined}
-        eventPrefix="client"
+        camera={{ 
+          position: [0, 0, isMobile ? 2 : 2.5], 
+          fov: isMobile ? 50 : 45,
+          near: 0.1,
+          far: 1000 
+        }}
+        gl={{ 
+          preserveDrawingBuffer: true,
+          antialias: true,
+          alpha: true 
+        }}
+        dpr={[1, 2]} // Optimize performance while maintaining quality
       >
         <ambientLight intensity={0.5 * Math.PI} />
         <Environment files="https://dl.polyhaven.org/file/ph-assets/HDRIs/hdr/1k/potsdamer_platz_1k.hdr" />
         <CameraRig>
           <Backdrop />
           <Center>
-            <ManGLBModel color={props.color} />
+            <ManGLBModel {...modelProps} />
           </Center>
         </CameraRig>
         <OrbitControls
           ref={controlsRef}
-          enablePan={true}
+          enableDamping
+          dampingFactor={0.05}
+          rotateSpeed={0.8}
           enableZoom={true}
           enableRotate={true}
-          minDistance={2}
-          maxDistance={5}
+          minPolarAngle={Math.PI / 4} // Limit vertical rotation
+          maxPolarAngle={Math.PI * 3/4}
         />
       </Canvas>
     </div>
   );
 }
-
 
 // @ts-ignore
 useGLTF.preload('/TexWeb/shirt_baked_collapsed.glb');

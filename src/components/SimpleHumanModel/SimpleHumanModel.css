@@ -1,14 +1,16 @@
 .human-model-canvas-container {
   width: 100%;
-  aspect-ratio: 16/9;
-  min-height: 35%; 
-  border-radius: 5%; 
-  background: #bebec0;
+  aspect-ratio: 4/3;
+  min-height: 500px;
+  max-height: calc(100vh - 200px); 
+  border-radius: 0.75rem;
+  background: linear-gradient(to bottom right, #f3f4f6, #e5e7eb);
   overflow: hidden;
   position: relative;
   display: flex;
-  justify-content: center; 
-  align-items: center; 
+  justify-content: center;
+  align-items: center;
+  transition: all 0.3s ease;
 }
 
 .human-model-canvas-container canvas {
@@ -20,17 +22,33 @@
   left: 0;
 }
 .human-model-canvas {
-  cursor: pointer; 
+  cursor: grab;
 }
 
 .human-model-canvas:active {
-  cursor: grabbing; 
+  cursor: grabbing;
 }
 
+/* Mobile optimizations */
 @media (max-width: 768px) {
   .human-model-canvas-container {
-    aspect-ratio: auto; 
-    min-height: 25%; 
-    border-radius: 3%; 
+    aspect-ratio: 3/4;
+    min-height: 400px;
+    max-height: calc(100vh - 300px);
+    border-radius: 0.5rem;
+    margin: 0.5rem;
   }
+}
+
+/* When settings panel is closed */
+.design-settings.closed ~ .design-preview .human-model-canvas-container {
+  max-width: calc(100% - 2rem);
+  margin: 1rem auto;
+  transition: all 0.3s ease;
+}
+
+/* When settings panel is open */
+.design-settings.open ~ .design-preview .human-model-canvas-container {
+  max-width: calc(100% - 2rem);
+  margin: 1rem auto;
 }

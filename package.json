@@ -10,7 +10,7 @@
     "build": "vite build",
     "lint": "eslint .",
     "preview": "vite preview",
-    "run" : "vite build && vite preview"
+    "run": "vite build && vite preview"
   },
   "dependencies": {
     "@react-three/drei": "^9.122.0",
@@ -19,7 +19,7 @@
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
     "react-router-dom": "^6.22.3",
-    "three": "^0.152.2"
+    "three": "^0.177.0"
   },
   "devDependencies": {
     "@eslint/js": "^9.9.1",
