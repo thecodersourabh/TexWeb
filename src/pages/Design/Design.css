@@ -4,9 +4,6 @@
   background-color: #f9fafb;
   position: relative;
   padding: 0.1rem;
-  perspective: 1000px;
-  transform-style: preserve-3d;
-  backface-visibility: hidden;
 }
 
 .design-preview {
@@ -21,6 +18,7 @@
   width: 240px; 
   background-color: #ffffff;
   border-right: 1px solid #e5e7eb;
+  transition: all 0.15s ease-out;
   z-index: 20;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
   display: flex;
@@ -30,19 +28,16 @@
   top: 20px;
   margin: 0;
   border-radius: 12px;
-  transform: translateZ(0);
-  will-change: transform;
-  transition: transform 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-  contain: content;
-  overscroll-behavior: contain;
 }
 
 .design-settings.closed {
-  transform: translate3d(-100%, 0, 0);
+  transform: translateX(-240px); /* Match the new width */
+  margin-right: -240px;
 }
 
 .design-settings.open {
-  transform: translate3d(0, 0, 0);
+  transform: translateX(0);
+  margin-right: 0;
 }
 
 .settings-header {
@@ -54,11 +49,8 @@
 }
 
 .settings-content {
-  transform: translateZ(0);
-  backface-visibility: hidden;
   overflow-y: auto;
-  overflow-x: hidden;
-  -webkit-overflow-scrolling: touch;
+  flex-grow: 1;
 }
 
 .settings-section {
@@ -148,13 +140,6 @@
   border-left: none;
   box-shadow: 2px 0 8px rgba(0, 0, 0, 0.05);
   font-size: 1rem;
-  transform: translateZ(0);
-  backface-visibility: hidden;
-  transition: transform 0.2s ease;
-}
-
-.toggle-button:active {
-  transform: scale(0.95) translateZ(0);
 }
 
 .toggle-icon {
@@ -367,14 +352,4 @@
 
 .measurement-row .range-container {
   flex: 1;
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .design-settings {
-    transition: none;
-  }
-  
-  .toggle-button {
-    transition: none;
-  }
 }
