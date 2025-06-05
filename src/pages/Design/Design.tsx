@@ -20,6 +20,13 @@ export function Design() {
     setSettings(newSettings);
   };
 
+  const handlePanelToggle = () => {
+    // Using requestAnimationFrame to ensure smooth transition
+    requestAnimationFrame(() => {
+      setIsPanelOpen(prev => !prev);
+    });
+  };
+
   const handleMeasurementChange = (
     measurement: keyof Measurements,
     value: number
@@ -34,11 +41,10 @@ export function Design() {
   };
 
   return (
-    <div className="design-container">
-      <SettingsPanel
+    <div className="design-container">      <SettingsPanel
         settings={settings}
         isPanelOpen={isPanelOpen}
-        onPanelToggle={() => setIsPanelOpen(!isPanelOpen)}
+        onPanelToggle={handlePanelToggle}
         onSettingsChange={handleSettingsChange}
         onMeasurementChange={handleMeasurementChange}
       />
