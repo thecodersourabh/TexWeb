@@ -1,4 +1,5 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState, useCallback, memo } from 'react';
+import { useDebounce } from '../../hooks/useDebounce';
 
 interface RangeInputProps {
   value: number;
@@ -9,9 +10,10 @@ interface RangeInputProps {
   label?: string;
   unit?: string;
   showValue?: boolean;
+  debounceMs?: number;
 }
 
-export function RangeInput({ 
+export const RangeInput = memo(function RangeInput({ 
   value, 
   onChange, 
   min, 
@@ -19,42 +21,106 @@ export function RangeInput({
   step,
   label,
   unit = "",
-  showValue = true 
+  showValue = true,
+  debounceMs = 150
 }: RangeInputProps) {
   const rangeRef = useRef<HTMLInputElement>(null);
   const trackRef = useRef<HTMLDivElement>(null);
+  const rafRef = useRef<number>();
+  const [localValue, setLocalValue] = useState(value);
+  const [isDragging, setIsDragging] = useState(false);
+
+  // Sync local value with prop value only when not dragging
+  useEffect(() => {
+    if (!isDragging) {
+      setLocalValue(value);
+    }
+  }, [value, isDragging]);
+
+  const debouncedOnChange = useDebounce(onChange, debounceMs);
+
+  const updateRangeFill = useCallback(() => {
+    if (rafRef.current) {
+      cancelAnimationFrame(rafRef.current);
+    }
+    
+    rafRef.current = requestAnimationFrame(() => {
+      if (trackRef.current) {
+        const percentage = ((localValue - min) / (max - min)) * 100;
+        trackRef.current.style.width = `${percentage}%`;
+      }
+    });
+  }, [localValue, min, max]);
 
   useEffect(() => {
     updateRangeFill();
-  }, [value, min, max]);
+    return () => {
+      if (rafRef.current) {
+        cancelAnimationFrame(rafRef.current);
+      }
+    };
+  }, [updateRangeFill]);
 
-  const updateRangeFill = () => {
-    if (rangeRef.current && trackRef.current) {
-      const percentage = ((value - min) / (max - min)) * 100;
-      trackRef.current.style.width = `${percentage}%`;
+  const updateValue = useCallback((newValue: number) => {
+    const clampedValue = Math.min(Math.max(newValue, min), max);
+    setLocalValue(clampedValue);
+    if (!isDragging) {
+      debouncedOnChange(clampedValue);
     }
-  };
+  }, [min, max, debouncedOnChange, isDragging]);
 
-  const handleMouseDown = (e: React.MouseEvent) => {
+  const handleDragEnd = useCallback(() => {
+    setIsDragging(false);
+    debouncedOnChange(localValue);
+  }, [debouncedOnChange, localValue]);
+
+  const handleMouseDown = useCallback((e: React.MouseEvent) => {
     e.preventDefault();
+    setIsDragging(true);
+    
     const handleMove = (e: MouseEvent) => {
       if (rangeRef.current) {
         const rect = rangeRef.current.getBoundingClientRect();
         const percentage = Math.min(Math.max((e.clientX - rect.left) / rect.width, 0), 1);
         const newValue = min + (max - min) * percentage;
         const steppedValue = Math.round(newValue / step) * step;
-        onChange(Math.min(Math.max(steppedValue, min), max));
+        updateValue(steppedValue);
       }
     };
 
     const handleUp = () => {
+      handleDragEnd();
       document.removeEventListener('mousemove', handleMove);
       document.removeEventListener('mouseup', handleUp);
     };
 
-    document.addEventListener('mousemove', handleMove);
+    document.addEventListener('mousemove', handleMove, { passive: true });
     document.addEventListener('mouseup', handleUp);
-  };
+  }, [min, max, step, updateValue, handleDragEnd]);
+
+  const handleTouchStart = useCallback((e: React.TouchEvent) => {
+    e.preventDefault();
+    setIsDragging(true);
+    
+    const handleTouchMove = (e: TouchEvent) => {
+      if (rangeRef.current && e.touches[0]) {
+        const rect = rangeRef.current.getBoundingClientRect();
+        const percentage = Math.min(Math.max((e.touches[0].clientX - rect.left) / rect.width, 0), 1);
+        const newValue = min + (max - min) * percentage;
+        const steppedValue = Math.round(newValue / step) * step;
+        updateValue(steppedValue);
+      }
+    };
+
+    const handleTouchEnd = () => {
+      handleDragEnd();
+      document.removeEventListener('touchmove', handleTouchMove);
+      document.removeEventListener('touchend', handleTouchEnd);
+    };
+
+    document.addEventListener('touchmove', handleTouchMove, { passive: false });
+    document.addEventListener('touchend', handleTouchEnd);
+  }, [min, max, step, updateValue, handleDragEnd]);
 
   return (
     <div className="flex flex-col space-y-1">
@@ -62,40 +128,44 @@ export function RangeInput({
         <div className="flex justify-between items-center text-xs text-gray-600">
           <span>{label}</span>
           {showValue && (
-            <span className="tabular-nums">
-              {value.toFixed(1)}{unit}
+            <span className="tabular-nums font-medium">
+              {localValue.toFixed(1)}{unit}
             </span>
           )}
         </div>
       )}
       <div 
-        className="range-container relative h-6 flex items-center cursor-pointer"
+        className="range-container relative h-6 flex items-center cursor-pointer touch-none"
         onMouseDown={handleMouseDown}
+        onTouchStart={handleTouchStart}
       >
         <div className="absolute inset-0 h-1 bg-gray-200 rounded-full">
           <div
             ref={trackRef}
             className="absolute h-full bg-rose-600 rounded-full"
+            style={{ willChange: 'width' }}
           />
         </div>
         <input
           ref={rangeRef}
           type="range"
-          value={value}
-          onChange={(e) => onChange(parseFloat(e.target.value))}
+          value={localValue}
+          onChange={(e) => updateValue(parseFloat(e.target.value))}
           min={min}
           max={max}
           step={step}
-          className="absolute w-full h-full opacity-0 cursor-pointer"
+          className="absolute w-full h-full opacity-0 cursor-pointer touch-none"
         />
         <div
-          className="absolute w-4 h-4 bg-white border-2 border-rose-600 rounded-full shadow transform -translate-x-1/2"
+          className="absolute w-4 h-4 bg-white border-2 border-rose-600 rounded-full shadow transform -translate-x-1/2 hover:scale-110 active:scale-95 transition-transform"
           style={{
-            left: `${((value - min) / (max - min)) * 100}%`,
-            transition: 'transform 0.1s ease',
+            left: `${((localValue - min) / (max - min)) * 100}%`,
+            willChange: 'transform',
+            transform: `translateX(-50%) ${isDragging ? 'scale(1.1)' : ''}`,
+            transition: isDragging ? 'none' : 'all 0.1s ease',
           }}
         />
       </div>
     </div>
   );
-}
+});

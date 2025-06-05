@@ -1,3 +1,4 @@
+import { memo } from "react";
 import { DesignSettings } from "../../types/design";
 import { Measurements } from "../../types/design";
 import { BasicSettings } from "./BasicSettings";
@@ -11,7 +12,7 @@ interface SettingsPanelProps {
   onMeasurementChange: (measurement: keyof Measurements, value: number) => void;
 }
 
-export function SettingsPanel({
+export const SettingsPanel = memo(function SettingsPanel({
   settings,
   isPanelOpen,
   onPanelToggle,
@@ -43,4 +44,4 @@ export function SettingsPanel({
       )}
     </div>
   );
-}
+});
