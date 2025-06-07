@@ -46,15 +46,96 @@
   }
   
   .design-preview {
-    width: 100%;
-    margin-left: 0;
-    padding: 1rem;
-    margin-bottom: 60px; /* Space for mobile panel toggle */
+    width: 100% !important;
+    padding: 0;
+    margin: 0 !important;
+    position: relative;
+    z-index: 10;
   }
 
   .design-settings.open ~ .design-preview {
-    margin-left: 0;
-    padding-bottom: calc(85vh + 1rem); /* Account for bottom panel */
+    width: 100% !important;
+    margin: 0 !important;
+    padding-bottom: 60vh;
+  }
+
+  .design-settings {
+    position: fixed;
+    left: 0;
+    top: auto;
+    bottom: 0;
+    margin: 0;
+    width: 100%;
+    max-height: 60vh;
+    border-radius: 12px 12px 0 0;
+    transform: translateY(100%);
+    border-right: none;
+    border-top: 1px solid #e5e7eb;
+    z-index: 30;
+  }
+
+  .design-settings.closed {
+    transform: translateY(100%);
+    margin-right: 0;
+  }
+
+  .design-settings.open {
+    transform: translateY(0);
+  }
+
+  .human-model-canvas {
+    height: 60vh;
+    width: 100%;
+    position: fixed;
+    top: 0;
+    left: 0;
+  }
+
+  .design-settings.open ~ .design-preview .human-model-canvas {
+    height: 40vh;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+  }
+
+  .setting-fields {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+    gap: 0.5rem;
+    padding: 0.5rem;
+  }
+
+  .setting-field {
+    padding: 0.25rem;
+  }
+
+  .settings-actions {
+    position: sticky;
+    bottom: 0;
+    background: white;
+    border-top: 1px solid #e5e7eb;
+    padding: 0.75rem;
+    box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.05);
+  }
+  .toggle-button {
+    top: -32px;
+    right: 50%;
+    transform: translateX(50%);
+    width: 64px;
+    height: 28px;
+    border: 1px solid #e5e7eb;
+    border-radius: 8px 8px 0 0;
+    border-bottom: none;
+  }
+
+  .toggle-icon {
+    display: inline-block;
+    transform: none;
+  }
+
+  .design-settings.closed .toggle-button {
+    border-radius: 8px 8px 0 0;
   }
 }
 
@@ -279,13 +360,33 @@
   }
 
   .design-preview {
+    width: 100% !important;
     padding: 0;
-    margin-bottom: 60px; /* Space for the toggle button */
-    margin-left: 0 !important;
+    margin: 0 !important;
+    position: relative;
+    z-index: 10;
+  }
+
+  .design-settings.open ~ .design-preview {
+    width: 100% !important;
+    margin: 0 !important;
+    padding-bottom: 60vh;
   }
 
   .human-model-canvas {
     height: 60vh;
+    width: 100%;
+    position: fixed;
+    top: 0;
+    left: 0;
+  }
+
+  .design-settings.open ~ .design-preview .human-model-canvas {
+    height: 40vh;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
   }
 
   .setting-fields {
