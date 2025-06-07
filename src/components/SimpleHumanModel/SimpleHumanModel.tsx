@@ -5,18 +5,46 @@ import { useEffect, useRef, useState } from 'react';
 import { ManGLBModel } from './ManGLBModel';
 import { Backdrop } from './Backdrop';
 import { CameraRig } from './CameraRig';
+import * as THREE from 'three';
+
+function DirectionalLight() {
+  const lightRef = useRef<THREE.DirectionalLight>(null);
+  const targetRef = useRef<THREE.Object3D>(null);
+
+  useEffect(() => {
+    if (lightRef.current && targetRef.current) {
+      lightRef.current.target = targetRef.current;
+    }
+  }, []);
+
+  return (
+    <group>
+      <directionalLight
+        ref={lightRef}
+        position={[4, 4, 4]}
+        intensity={1.5}
+        castShadow
+        shadow-mapSize={[1024, 1024]}
+      >
+        <object3D ref={targetRef} position={[0, 0, -1]} />
+      </directionalLight>
+    </group>
+  );
+}
 
 interface IHumanModelProps {
+  modelUrl?: string | null;
   color: string;
   chest: number;  
   waist: number;  
   hips: number;   
   height: number; 
+  modelType?: string; 
 }
 
 const inchToCm = (inch: number) => inch * 2.54;
 
-export function SimpleHumanModel(props: IHumanModelProps) {
+export function SimpleHumanModel({ modelUrl, modelType = "T-shirt", ...props }: IHumanModelProps) {
   const controlsRef = useRef<any>(null);
   const [isMobile, setIsMobile] = useState(window.innerWidth <= 768);
 
@@ -58,6 +86,7 @@ export function SimpleHumanModel(props: IHumanModelProps) {
     waist: inchToCm(props.waist),
     hips: inchToCm(props.hips),
     height: inchToCm(props.height),
+    modelType
   };
 
   return (
@@ -65,7 +94,7 @@ export function SimpleHumanModel(props: IHumanModelProps) {
       <Canvas
         shadows={true}
         camera={{ 
-          position: [0, 0, isMobile ? 2 : 2.5], 
+          position: [0, modelType === "Full Body" ? 1 : 0, isMobile ? 2 : 2.5], 
           fov: isMobile ? 50 : 45,
           near: 0.1,
           far: 1000 
@@ -73,16 +102,34 @@ export function SimpleHumanModel(props: IHumanModelProps) {
         gl={{ 
           preserveDrawingBuffer: true,
           antialias: true,
-          alpha: true 
+          alpha: true,
+          powerPreference: 'high-performance'
         }}
-        dpr={[1, 2]} // Optimize performance while maintaining quality
+        dpr={[1, 2]}
       >
-        <ambientLight intensity={0.5 * Math.PI} />
-        <Environment files="https://dl.polyhaven.org/file/ph-assets/HDRIs/hdr/1k/potsdamer_platz_1k.hdr" />
+        <color attach="background" args={['#f9fafb']} />
+        <fog attach="fog" args={['#f9fafb', 5, 15]} />
+        
+        {/* Replace ambient light with multiple directional lights for better coverage */}
+        <directionalLight
+          intensity={0.5}
+          position={[0, 1, 0]}
+          color="#ffffff"
+        />
+        <directionalLight
+          intensity={0.3}
+          position={[-5, 5, -5]}
+          color="#ffffff"
+        />
+        <DirectionalLight />
+        <Environment 
+          preset="studio"
+          background={false}
+        />
         <CameraRig>
           <Backdrop />
           <Center>
-            <ManGLBModel {...modelProps} />
+            <ManGLBModel modelUrl={modelUrl} {...modelProps} />
           </Center>
         </CameraRig>
         <OrbitControls
@@ -92,7 +139,7 @@ export function SimpleHumanModel(props: IHumanModelProps) {
           rotateSpeed={0.8}
           enableZoom={true}
           enableRotate={true}
-          minPolarAngle={Math.PI / 4} // Limit vertical rotation
+          minPolarAngle={Math.PI / 4}
           maxPolarAngle={Math.PI * 3/4}
         />
       </Canvas>
@@ -100,6 +147,6 @@ export function SimpleHumanModel(props: IHumanModelProps) {
   );
 }
 
-// @ts-ignore
-useGLTF.preload('/TexWeb/shirt_baked_collapsed.glb');
+// Preload the default model
+useGLTF.preload(new URL('shirt_baked_collapsed.glb', window.location.origin + import.meta.env.BASE_URL).href);
 

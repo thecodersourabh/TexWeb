@@ -1,10 +1,10 @@
 import { Measurements, MeasurementField } from "../../types/design";
-import { MEASUREMENT_RANGE } from "../../constants/measurements";
+import { MEASUREMENT_RANGE, HEIGHT_RANGE } from "../../constants/measurements";
 import { RangeInput } from "./RangeInput";
 
 interface MeasurementSettingsProps {
   measurements: Measurements;
-  itemType: "T-shirt" | "Pants" | "other";
+  itemType: string;
   onMeasurementChange: (measurement: keyof Measurements, value: number) => void;
 }
 
@@ -63,11 +63,22 @@ export function MeasurementSettings({
       },
     ];
 
-    return [
-      ...commonFields,
-      ...(itemType === "T-shirt" ? shirtFields : []),
-      ...(itemType === "Pants" ? pantsFields : []),
-    ];
+    const heightField: MeasurementField = {
+      key: "height",
+      label: "Height (inches)",
+      range: HEIGHT_RANGE,
+    };
+
+    switch (itemType) {
+      case "Full Body":
+        return [...commonFields, ...shirtFields, ...pantsFields, heightField];
+      case "T-shirt":
+        return [...commonFields, ...shirtFields];
+      case "Pants":
+        return [...commonFields, ...pantsFields];
+      default:
+        return commonFields;
+    }
   };
 
   return (
@@ -76,7 +87,8 @@ export function MeasurementSettings({
         <h2 className="section-title">Size</h2>
       </div>
       <div className="setting-fields">
-        {getMeasurementFields().map((field) => (          <div key={field.key} className="setting-field">
+        {getMeasurementFields().map((field) => (
+          <div key={field.key} className="setting-field">
             <RangeInput
               value={measurements[field.key] || 0}
               onChange={(value) => onMeasurementChange(field.key, value)}

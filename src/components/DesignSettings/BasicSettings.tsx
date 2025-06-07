@@ -25,8 +25,9 @@ export function BasicSettings({ settings, onSettingsChange }: BasicSettingsProps
             }
             className="compact-input"
           >
-            <option value="shirt">T-Shirt</option>
-            <option value="pants">Pants</option>
+            <option value="T-shirt">T-Shirt</option>
+            <option value="Pants">Pants</option>
+            <option value="Full Body">Full Body</option>
           </select>
         </div>
 

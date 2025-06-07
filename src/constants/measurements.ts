@@ -1,4 +1,5 @@
 export const MEASUREMENT_RANGE = { min: 0, max: 50 };
+export const HEIGHT_RANGE = { min: 0, max: 100 }; 
 
 export const SIZE_MEASUREMENTS = {
   XS: {
@@ -10,6 +11,7 @@ export const SIZE_MEASUREMENTS = {
     sleeveLength: 24,
     inseam: 30,
     thigh: 20,
+    height: 64, 
   },
   S: {
     neck: 14.25,
@@ -20,6 +22,7 @@ export const SIZE_MEASUREMENTS = {
     sleeveLength: 24.5,
     inseam: 31,
     thigh: 21,
+    height: 66, // 5'6"
   },
   M: {
     neck: 14.75,
@@ -30,6 +33,7 @@ export const SIZE_MEASUREMENTS = {
     sleeveLength: 25.5,
     inseam: 32,
     thigh: 22,
+    height: 68, // 5'8"
   },
   L: {
     neck: 15.25,
@@ -40,6 +44,7 @@ export const SIZE_MEASUREMENTS = {
     sleeveLength: 26,
     inseam: 33,
     thigh: 23,
+    height: 70, // 5'10"
   },
   XL: {
     neck: 15.75,
@@ -50,6 +55,7 @@ export const SIZE_MEASUREMENTS = {
     sleeveLength: 26.5,
     inseam: 34,
     thigh: 24,
+    height: 72, 
   },
   "2XL": {
     neck: 16.25,
@@ -60,5 +66,6 @@ export const SIZE_MEASUREMENTS = {
     sleeveLength: 27,
     inseam: 35,
     thigh: 25,
+    height: 74, 
   },
 } as const;

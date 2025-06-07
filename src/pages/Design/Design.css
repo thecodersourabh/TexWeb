@@ -1,18 +1,63 @@
 .design-container {
   display: flex;
-  min-height: calc(100vh - 60px); 
+  min-height: calc(100vh - 60px);
   background-color: #f9fafb;
   position: relative;
-  padding: 0.1rem;
+  overflow-x: hidden;
 }
 
 .design-preview {
   flex-grow: 1;
+  min-width: 0; /* Prevent flex child from overflowing */
   display: flex;
   flex-direction: column;
-  padding: 0 1rem;
-  transition: all 0.15s ease-out;
+  padding: 1.5rem;
+  transition: all 0.3s ease-out;
+  width: calc(100% - 300px); /* Adjust width to account for panel */
 }
+
+.model-container {
+  width: 100%;
+  max-width: 56rem; /* 4xl in Tailwind */
+  margin: 0 auto;
+  background-color: white;
+  border-radius: 0.5rem;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+  overflow: hidden;
+}
+
+/* When settings panel is closed */
+.design-settings.closed ~ .design-preview {
+  margin-left: 0 !important;
+  width: 100%;
+}
+
+/* Center the preview when settings panel is open */
+.design-settings.open ~ .design-preview {
+  left: 0;
+  width: calc(100% - 300px); 
+}
+
+/* Mobile styles */
+@media (max-width: 768px) {
+  .design-container {
+    flex-direction: column-reverse;
+    padding: 0;
+  }
+  
+  .design-preview {
+    width: 100%;
+    margin-left: 0;
+    padding: 1rem;
+    margin-bottom: 60px; /* Space for mobile panel toggle */
+  }
+
+  .design-settings.open ~ .design-preview {
+    margin-left: 0;
+    padding-bottom: calc(85vh + 1rem); /* Account for bottom panel */
+  }
+}
+
 
 .design-settings {
   width: 240px; 
@@ -236,6 +281,7 @@
   .design-preview {
     padding: 0;
     margin-bottom: 60px; /* Space for the toggle button */
+    margin-left: 0 !important;
   }
 
   .human-model-canvas {

@@ -1,29 +1,102 @@
 import { useFrame } from '@react-three/fiber';
 import { useGLTF } from '@react-three/drei';
 import { easing } from 'maath';
+import { useState, useEffect, useRef } from 'react';
+import * as THREE from 'three';
 
 interface ManGLBModelProps {
+  modelUrl?: string | null;
   color: string;
+  modelType?: string;
+  chest: number;
+  waist: number;
+  hips: number;
+  height: number;
 }
 
-export function ManGLBModel({ color }: ManGLBModelProps) {
-  const { nodes } = useGLTF('/TexWeb/shirt_baked_collapsed.glb') as any;
+export function ManGLBModel({ 
+  color = '#ffffff', 
+  modelType = "T-shirt",
+  chest,
+  height 
+}: ManGLBModelProps) {
+  const baseUrl = import.meta.env.BASE_URL || '/';
+  const [currentModelPath, setCurrentModelPath] = useState(getModelPath(modelType));
 
+  function getModelPath(type: string) {
+    console.log('Getting model path for type:', type);
+    if (type === "Full Body") {
+      return `${baseUrl}man.glb`;
+    }
+    return `${baseUrl}shirt_baked_collapsed.glb`;
+  }
+
+  // Update model path when type changes
+  useEffect(() => {
+    console.log('Model type changed to:', modelType);
+    const newPath = getModelPath(modelType);
+    console.log('New model path:', newPath);
+    setCurrentModelPath(newPath);
+  }, [modelType, baseUrl]);
+
+  // Load the model with the current path
+  const { nodes } = useGLTF(currentModelPath);
+  
+  // Reference for color animation
+  const materialRef = useRef<THREE.MeshStandardMaterial>();
+
+  // Update material color smoothly
   useFrame((_, delta) => {
-    if (nodes.T_Shirt_male && nodes.T_Shirt_male.material) {
-      easing.dampC(nodes.T_Shirt_male.material.color, color, 0.25, delta);
+    if (materialRef.current) {
+      easing.dampC(materialRef.current.color, new THREE.Color(color), 0.2, delta);
     }
   });
 
+  // Early return if nodes aren't loaded yet
+  if (!nodes) {
+    console.log('Nodes not loaded yet');
+    return null;
+  }
+
+  // Find the first mesh in the loaded model
+  const firstMesh = Object.values(nodes).find(
+    (node: any) => node instanceof THREE.Mesh
+  ) as THREE.Mesh;
+
+  if (!firstMesh) {
+    console.log('No mesh found in model');
+    return null;
+  }
+
+  // Create and configure the material
+  const material = new THREE.MeshStandardMaterial({
+    color: new THREE.Color(color),
+    roughness: 0.7,
+    metalness: 0.1,
+  });
+  materialRef.current = material;
+
+  // Calculate scale based on model type
+  const scale = modelType === "Full Body" 
+    ? height / 170  // Scale full body model based on height
+    : chest / 100;  // Scale t-shirt model based on chest
+
+  console.log('Rendering model with scale:', scale);
+  
   return (
-    <mesh
-      castShadow
-      geometry={nodes.T_Shirt_male.geometry}
-      material={nodes.T_Shirt_male.material}
-      position={[0, 0, 0]}
-      rotation={[0, 0, 0]}
-      scale={1}
-      dispose={null}
-    />
+    <group dispose={null}>
+      <mesh
+        geometry={firstMesh.geometry}
+        material={material}
+        scale={scale}
+        castShadow
+        receiveShadow
+      />
+    </group>
   );
 }
+
+// Preload both models
+const baseUrl = import.meta.env.BASE_URL || '/';
+useGLTF.preload(`${baseUrl}shirt_baked_collapsed.glb`);
+useGLTF.preload(`${baseUrl}man.glb`);

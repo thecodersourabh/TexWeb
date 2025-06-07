@@ -7,10 +7,11 @@ export interface Measurements {
   sleeveLength: number;
   inseam?: number;
   thigh?: number;
+  height: number;  
 }
 
 export interface DesignSettings {
-  itemType: "T-shirt" | "Pants" | "other";
+  itemType: "T-shirt" | "Pants" | "Full Body" | "other";
   color: string;
   measurements: Measurements;
   standardSize: string;
