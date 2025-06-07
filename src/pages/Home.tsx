@@ -1,9 +1,11 @@
 import { BedDouble, Ruler, Scissors, Sparkles } from "lucide-react";
 import { CategoryCard } from "../components/CategoryCard";
 import { useCart } from "../context/CartContext";
+import { useNavigate } from "react-router-dom";
 
 export const Home = () => {
   const { addItem } = useCart();
+  const navigate = useNavigate();
   return (
     <>
       {/* Hero Section */}
@@ -23,7 +25,10 @@ export const Home = () => {
             <p className="text-xl mb-8">
               Turn your creativity into beautiful custom fabrics
             </p>
-            <button className="bg-rose-600 text-white px-8 py-3 rounded-full hover:bg-rose-700 transition">
+            <button
+              onClick={() => navigate("/design")}
+              className="bg-rose-600 text-white px-8 py-3 rounded-full hover:bg-rose-700 transition"
+            >
               Start Creating
             </button>
           </div>
@@ -56,13 +61,17 @@ export const Home = () => {
                   <Scissors className="h-5 w-5" />
                   <span>100% Cotton</span>
                 </div>
-              </div>              <button 
-                onClick={() => addItem({
-                  id: "cotton-sateen",
-                  name: "Extra-Wide Cotton Sateen Fabric",
-                  price: 24.99,
-                  image: "https://images.unsplash.com/photo-1544367567-0f2fcb009e0b?auto=format&fit=crop&q=80"
-                })}
+              </div>
+              <button
+                onClick={() =>
+                  addItem({
+                    id: "cotton-sateen",
+                    name: "Extra-Wide Cotton Sateen Fabric",
+                    price: 24.99,
+                    image:
+                      "https://images.unsplash.com/photo-1544367567-0f2fcb009e0b?auto=format&fit=crop&q=80",
+                  })
+                }
                 className="bg-rose-600 text-white px-6 py-3 rounded-full hover:bg-rose-700 transition"
               >
                 Shop Now
