@@ -7,12 +7,14 @@ interface MeasurementSettingsProps {
   measurements: Measurements;
   itemType: string;
   onMeasurementChange: (measurement: keyof Measurements, value: number) => void;
+  onStateChange?: (isOpen: boolean) => void;
 }
 
 export function MeasurementSettings({
   measurements,
   itemType,
   onMeasurementChange,
+  onStateChange
 }: MeasurementSettingsProps) {
   const getMeasurementFields = (): MeasurementField[] => {
     const commonFields: MeasurementField[] = [
@@ -81,8 +83,7 @@ export function MeasurementSettings({
         return commonFields;
     }
   };
-  return (
-    <CollapsibleSection title="Measurements" defaultOpen={true}>
+  return (    <CollapsibleSection title="Measurements" defaultOpen={true} onStateChange={onStateChange}>
       <div className="setting-fields">
         {getMeasurementFields().map((field) => (
           <div key={field.key} className="setting-field">

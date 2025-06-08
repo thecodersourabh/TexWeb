@@ -6,10 +6,10 @@ import { CollapsibleSection } from "./CollapsibleSection";
 interface BasicSettingsProps {
   settings: DesignSettings;
   onSettingsChange: (newSettings: DesignSettings) => void;
+  onStateChange?: (isOpen: boolean) => void;
 }
 
-export function BasicSettings({ settings, onSettingsChange }: BasicSettingsProps) {  return (
-    <CollapsibleSection title="Basic" defaultOpen={true}>
+export function BasicSettings({ settings, onSettingsChange, onStateChange }: BasicSettingsProps) {  return (    <CollapsibleSection title="Basic" defaultOpen={true} onStateChange={onStateChange}>
       <div className="setting-fields">
         <div className="setting-field">
           <label>Type</label>

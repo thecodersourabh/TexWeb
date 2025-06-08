@@ -5,12 +5,14 @@ interface CollapsibleSectionProps {
   title: string;
   defaultOpen?: boolean;
   children: React.ReactNode;
+  onStateChange?: (isOpen: boolean) => void;
 }
 
 export function CollapsibleSection({ 
   title, 
   defaultOpen = true, 
-  children 
+  children,
+  onStateChange
 }: CollapsibleSectionProps) {
   const [isOpen, setIsOpen] = useState(defaultOpen);
   const contentRef = useRef<HTMLDivElement>(null);
@@ -22,9 +24,12 @@ export function CollapsibleSection({
       setContentHeight(`${height}px`);
     }
   }, [children]);
-
   const toggleSection = () => {
-    setIsOpen(!isOpen);
+    const newIsOpen = !isOpen;
+    setIsOpen(newIsOpen);
+    if (onStateChange) {
+      onStateChange(newIsOpen);
+    }
   };
 
   return (

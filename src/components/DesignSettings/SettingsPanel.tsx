@@ -3,6 +3,7 @@ import { DesignSettings } from "../../types/design";
 import { Measurements } from "../../types/design";
 import { BasicSettings } from "./BasicSettings";
 import { MeasurementSettings } from "./MeasurementSettings";
+import "./SettingsPanel.css";
 
 interface SettingsPanelProps {
   settings: DesignSettings;
@@ -18,11 +19,19 @@ export const SettingsPanel = memo(function SettingsPanel({
   onPanelToggle,
   onSettingsChange,
   onMeasurementChange,
-}: SettingsPanelProps) {
-  const panelRef = useRef<HTMLDivElement>(null);
+}: SettingsPanelProps) {  const panelRef = useRef<HTMLDivElement>(null);
   const touchStartY = useRef<number>(0);
   const currentY = useRef<number>(0);
   const [isDragging, setIsDragging] = useState(false);
+  const [openSections, setOpenSections] = useState({ basic: true, measurements: true });
+
+  const handleSectionStateChange = (section: 'basic' | 'measurements') => (isOpen: boolean) => {
+    setOpenSections(prev => ({ ...prev, [section]: isOpen }));
+  };
+
+  const allSectionsClosed = !openSections.basic && !openSections.measurements;
+  const oneCollapsed = (openSections.basic && !openSections.measurements) || 
+                      (!openSections.basic && openSections.measurements);
 
   const handleTouchStart = useCallback((e: TouchEvent) => {
     if (!panelRef.current) return;
@@ -76,10 +85,11 @@ export const SettingsPanel = memo(function SettingsPanel({
     };
   }, [handleTouchStart, handleTouchMove, handleTouchEnd]);
 
-  return (
-    <div 
+  return (    <div 
       ref={panelRef}
-      className={`design-settings ${isPanelOpen ? "open" : "closed"}`}
+      className={`design-settings ${isPanelOpen ? "open" : "closed"} ${
+        allSectionsClosed ? "all-collapsed" : oneCollapsed ? "one-collapsed" : ""
+      }`}
       style={{ 
         touchAction: isDragging ? 'none' : 'pan-y',
         transition: isDragging ? 'none' : undefined 
@@ -94,14 +104,14 @@ export const SettingsPanel = memo(function SettingsPanel({
         >
           <span className="toggle-icon">{isPanelOpen ? "▼" : "▲"}</span>
         </button>
-      </div>
-
+      </div>      
       <div className={`settings-content ${!isPanelOpen ? 'invisible' : ''}`}>
-        <BasicSettings settings={settings} onSettingsChange={onSettingsChange} />
+        <BasicSettings settings={settings} onSettingsChange={onSettingsChange} onStateChange={handleSectionStateChange('basic')} />
         <MeasurementSettings
           measurements={settings.measurements}
           itemType={settings.itemType}
           onMeasurementChange={onMeasurementChange}
+          onStateChange={handleSectionStateChange('measurements')}
         />
       </div>
     </div>
