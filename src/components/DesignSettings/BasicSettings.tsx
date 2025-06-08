@@ -1,18 +1,15 @@
 import { SIZE_MEASUREMENTS } from "../../constants/measurements";
 import { DesignSettings } from "../../types/design";
 import { RangeInput } from "./RangeInput";
+import { CollapsibleSection } from "./CollapsibleSection";
 
 interface BasicSettingsProps {
   settings: DesignSettings;
   onSettingsChange: (newSettings: DesignSettings) => void;
 }
 
-export function BasicSettings({ settings, onSettingsChange }: BasicSettingsProps) {
-  return (
-    <div className="settings-section">
-      <div className="section-header">
-        <h2 className="section-title">Basic</h2>
-      </div>
+export function BasicSettings({ settings, onSettingsChange }: BasicSettingsProps) {  return (
+    <CollapsibleSection title="Basic" defaultOpen={true}>
       <div className="setting-fields">
         <div className="setting-field">
           <label>Type</label>
@@ -82,9 +79,8 @@ export function BasicSettings({ settings, onSettingsChange }: BasicSettingsProps
             onChange={(value) =>
               onSettingsChange({ ...settings, zoom: value })
             }
-          />
-        </div>
+          />        </div>
       </div>
-    </div>
+    </CollapsibleSection>
   );
 }

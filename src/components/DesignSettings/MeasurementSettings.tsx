@@ -1,6 +1,7 @@
 import { Measurements, MeasurementField } from "../../types/design";
 import { MEASUREMENT_RANGE, HEIGHT_RANGE } from "../../constants/measurements";
 import { RangeInput } from "./RangeInput";
+import { CollapsibleSection } from "./CollapsibleSection";
 
 interface MeasurementSettingsProps {
   measurements: Measurements;
@@ -80,12 +81,8 @@ export function MeasurementSettings({
         return commonFields;
     }
   };
-
   return (
-    <div className="settings-section">
-      <div className="section-header">
-        <h2 className="section-title">Size</h2>
-      </div>
+    <CollapsibleSection title="Measurements" defaultOpen={true}>
       <div className="setting-fields">
         {getMeasurementFields().map((field) => (
           <div key={field.key} className="setting-field">
@@ -100,8 +97,7 @@ export function MeasurementSettings({
               showValue={true}
             />
           </div>
-        ))}
-      </div>
-    </div>
+        ))}      </div>
+    </CollapsibleSection>
   );
 }
