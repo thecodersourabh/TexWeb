@@ -15,6 +15,7 @@ export interface DesignSettings {
   color: string;
   measurements: Measurements;
   standardSize: string;
+  zoom?: number;
 }
 
 export type MeasurementField = {

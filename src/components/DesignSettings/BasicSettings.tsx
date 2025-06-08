@@ -1,5 +1,6 @@
 import { SIZE_MEASUREMENTS } from "../../constants/measurements";
 import { DesignSettings } from "../../types/design";
+import { RangeInput } from "./RangeInput";
 
 interface BasicSettingsProps {
   settings: DesignSettings;
@@ -69,6 +70,19 @@ export function BasicSettings({ settings, onSettingsChange }: BasicSettingsProps
               {settings.color.toUpperCase()}
             </span>
           </div>
+        </div>
+
+        <div className="setting-field">
+          <label>Zoom</label>
+          <RangeInput
+            value={settings.zoom ?? 1}
+            min={0.5}
+            max={2}
+            step={0.1}
+            onChange={(value) =>
+              onSettingsChange({ ...settings, zoom: value })
+            }
+          />
         </div>
       </div>
     </div>

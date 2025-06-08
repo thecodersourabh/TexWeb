@@ -8,17 +8,13 @@ interface ManGLBModelProps {
   modelUrl?: string | null;
   color: string;
   modelType?: string;
-  chest: number;
-  waist: number;
-  hips: number;
-  height: number;
+  zoom?: number;
 }
 
 export function ManGLBModel({ 
   color = '#ffffff', 
   modelType = "T-shirt",
-  chest,
-  height 
+  zoom = 1
 }: ManGLBModelProps) {
   const baseUrl = import.meta.env.BASE_URL || '/';
   const [currentModelPath, setCurrentModelPath] = useState(getModelPath(modelType));
@@ -74,14 +70,10 @@ export function ManGLBModel({
     roughness: 0.7,
     metalness: 0.1,
   });
-  materialRef.current = material;
+  materialRef.current = material;  // Apply only zoom scaling
+  const scale = zoom;
 
-  // Calculate scale based on model type
-  const scale = modelType === "Full Body" 
-    ? height / 170  // Scale full body model based on height
-    : chest / 100;  // Scale t-shirt model based on chest
-
-  console.log('Rendering model with scale:', scale);
+  console.log('Rendering model with zoom scale:', scale);
   
   return (
     <group dispose={null}>

@@ -35,14 +35,9 @@ function DirectionalLight() {
 interface IHumanModelProps {
   modelUrl?: string | null;
   color: string;
-  chest: number;  
-  waist: number;  
-  hips: number;   
-  height: number; 
+  zoom: number;
   modelType?: string; 
 }
-
-const inchToCm = (inch: number) => inch * 2.54;
 
 export function SimpleHumanModel({ modelUrl, modelType = "T-shirt", ...props }: IHumanModelProps) {
   const controlsRef = useRef<any>(null);
@@ -78,14 +73,9 @@ export function SimpleHumanModel({ modelUrl, modelType = "T-shirt", ...props }: 
       controlsRef.current.update();
     }
   }, [isMobile]);
-
-  // Convert measurements to centimeters for the 3D model
   const modelProps = {
     color: props.color,
-    chest: inchToCm(props.chest),
-    waist: inchToCm(props.waist),
-    hips: inchToCm(props.hips),
-    height: inchToCm(props.height),
+    zoom: props.zoom,
     modelType
   };
 

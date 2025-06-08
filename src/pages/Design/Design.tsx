@@ -12,6 +12,7 @@ const defaultSettings: DesignSettings = {
   color: "#000000",
   standardSize: "M",
   measurements: SIZE_MEASUREMENTS.M,
+  zoom: 1,
 };
 
 type SizeKey = keyof typeof SIZE_MEASUREMENTS;
@@ -83,6 +84,7 @@ export function Design() {
             modelUrl={customModelUrl}
             modelType={settings.itemType}
             color={settings.color}
+            zoom={settings.zoom || 1}
             {...settings.measurements}
           />
           <div className="absolute top-4 right-4 z-10">
