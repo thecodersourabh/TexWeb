@@ -16,6 +16,7 @@ import { Orders } from "./pages/Orders/Orders";
 import { Addresses } from "./pages/Profile/Addresses/Addresses";
 import { Wishlist } from "./pages/Profile/Wishlist/Wishlist";
 import * as config from "./auth_config.json";
+import { getRedirectUri } from "./utils/getRedirectUri";
 
 // Configure future flags for React Router v7
 const routerFutureConfig = {
@@ -28,16 +29,16 @@ function App() {
 
   return (
     <Router future={routerFutureConfig}>
-      {" "}
       <Auth0Provider
         domain={config.domain}
         clientId={config.clientId}
         authorizationParams={{
-          redirect_uri: config.authorizationParams.redirect_uri,
+          redirect_uri: getRedirectUri(),
           audience: config.authorizationParams.audience,
         }}
         cacheLocation="localstorage"
-      >        <CartProvider>
+      >
+        <CartProvider>
           <AuthProvider>
             <WishlistProvider>
               <div className="min-h-screen bg-white">
