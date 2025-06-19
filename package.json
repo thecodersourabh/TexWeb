@@ -13,6 +13,7 @@
     "run": "vite build && vite preview"
   },
   "dependencies": {
+    "@auth0/auth0-react": "^2.3.0",
     "@react-three/drei": "^9.122.0",
     "@react-three/fiber": "^8.18.0",
     "@types/three": "^0.156.0",

@@ -1,0 +1,11 @@
+{
+  "domain": "dev-arrows.au.auth0.com",
+  "clientId": "wyCAzyDQa7umHNaXCColuKkLtx0pkX0G",
+  "authorizationParams": {
+    "redirect_uri": "http://localhost:4173",
+    "audience": "https://dev-arrows.au.auth0.com/api/v2/"
+  },
+  "apiUrl": "https://dev-arrows.au.auth0.com/api/v2/",
+  "appUri": "http://localhost:4173",
+  "errorPath": "/error"
+}

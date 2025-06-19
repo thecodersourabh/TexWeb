@@ -1,9 +1,14 @@
 import { Link } from "react-router-dom";
-import { Scissors, Heart, ShoppingCart } from "lucide-react";
+import { Scissors, Heart, ShoppingCart, User } from "lucide-react";
 import { useCart } from "../context/CartContext";
+import { useAuth } from "../context/AuthContext";
+import { useState } from "react";
+import { ProfilePanel } from "./ProfilePanel/ProfilePanel";
 
 export function Navigation() {
   const { setIsCartOpen, items } = useCart();
+  const { isAuthenticated, user, loginWithRedirect, logout } = useAuth();
+  const [isProfileOpen, setIsProfileOpen] = useState(false);
   return (
     <nav className="bg-white border-b border-gray-100 px-4 py-3">
       <div className="max-w-7xl mx-auto flex items-center justify-between">
@@ -39,6 +44,32 @@ export function Navigation() {
               </span>
             )}
           </button>
+          {isAuthenticated ? (
+            <button
+              onClick={() => setIsProfileOpen(true)}
+              className="flex items-center space-x-2 hover:opacity-75 transition-opacity"
+            >
+              <img
+                src={user?.picture}
+                className="h-8 w-8 rounded-full border-2 border-rose-200"
+              />
+              <span className="text-sm text-gray-700 hidden md:inline">{user?.name}</span>
+            </button>
+          ) : (
+            <button
+              onClick={() => loginWithRedirect()}
+              className="text-sm text-gray-600 hover:text-gray-900 flex items-center space-x-1"
+            >
+              <User className="h-5 w-5" />
+              <span>Sign In</span>
+            </button>
+          )}
+
+          {/* Profile Panel */}
+          <ProfilePanel
+            isOpen={isProfileOpen}
+            onClose={() => setIsProfileOpen(false)}
+          />
         </div>
       </div>
     </nav>

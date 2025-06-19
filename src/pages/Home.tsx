@@ -29,7 +29,7 @@ export const Home = () => {
               onClick={() => navigate("/design")}
               className="bg-rose-600 text-white px-8 py-3 rounded-full hover:bg-rose-700 transition"
             >
-              Start Creating
+              Start Designing
             </button>
           </div>
         </div>
