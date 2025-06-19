@@ -1,6 +1,7 @@
 import { createContext, useContext, useEffect, useState } from 'react';
 import { useAuth0 } from '@auth0/auth0-react';
 import { useNavigate } from 'react-router-dom';
+import { getLogoutUri } from '../utils/getRedirectUri';
 
 interface AuthContextType {
   isAuthenticated: boolean;
@@ -32,7 +33,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     isAuthenticated,
     user,
     loading: isLoading,
-    logout: () => logout({ logoutParams: { returnTo: window.location.origin } }),
+    logout: () => logout({ logoutParams: { returnTo: getLogoutUri() } }),
     loginWithRedirect,
   };
 

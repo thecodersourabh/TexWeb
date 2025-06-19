@@ -28,6 +28,11 @@ export const ProfilePanel = ({ isOpen, onClose }: ProfilePanelProps) => {
     setIsCartOpen(true); // Open cart panel
   };
 
+  const handleLogout = () => {
+    onClose(); // Close profile panel before logout
+    logout(); // This will now use the configured logout URL from AuthContext
+  };
+
   const menuItems = [
     {
       icon: ShoppingCart,
@@ -138,7 +143,7 @@ export const ProfilePanel = ({ isOpen, onClose }: ProfilePanelProps) => {
           {/* Logout Button */}
           <div className="border-t p-4">
             <button
-              onClick={() => logout()}
+              onClick={handleLogout}
               className="flex items-center justify-center space-x-2 w-full px-4 py-2 text-white bg-rose-600 hover:bg-rose-700 rounded-md transition-colors"
             >
               <LogOut className="h-5 w-5" />

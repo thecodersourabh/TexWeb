@@ -37,6 +37,9 @@ function App() {
           audience: config.authorizationParams.audience,
         }}
         cacheLocation="localstorage"
+        onRedirectCallback={(appState) => {
+          window.location.href = appState?.returnTo || window.location.pathname;
+        }}
       >
         <CartProvider>
           <AuthProvider>
