@@ -18,7 +18,7 @@ export function BasicSettings({ settings, onSettingsChange, onStateChange }: Bas
             onChange={(e) =>
               onSettingsChange({
                 ...settings,
-                itemType: e.target.value as any,
+                itemType: e.target.value as DesignSettings['itemType'],
               })
             }
             className="compact-input"

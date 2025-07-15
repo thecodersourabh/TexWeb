@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { Camera, X, AlertCircle, Loader } from 'lucide-react';
+import { Camera, X, AlertCircle } from 'lucide-react';
 import { CameraAnalyzer } from '../../utils/CameraAnalyzer';
 
 interface CapturePreviewModalProps {
@@ -36,7 +36,7 @@ export function CapturePreviewModal({
           analyzerRef.current = CameraAnalyzer.getInstance();
           
           // Set a callback to get model loading status
-          (window as any).updateModelLoadingStatus = (status: string) => {
+          (window as unknown as { updateModelLoadingStatus?: (status: string) => void }).updateModelLoadingStatus = (status: string) => {
             console.log('Model loading status:', status);
             setModelLoadingStatus(status);
           };
@@ -60,18 +60,20 @@ export function CapturePreviewModal({
             });
             
             console.log('Analysis started');
-          } catch (modelError: any) {
+          } catch (modelError: unknown) {
             console.error('Failed to initialize face models:', modelError);
-            setError(`Failed to load face detection models: ${modelError?.message || 'Unknown error'}. 
+            const errorMessage = modelError instanceof Error ? modelError.message : 'Unknown error';
+            setError(`Failed to load face detection models: ${errorMessage}. 
               Try reloading the page or using a different browser.`);
             setLoadingStage('error');
             // Don't close immediately to allow user to see error
             setTimeout(onClose, 5000);
             return;
           }
-        } catch (error: any) {
+        } catch (error: unknown) {
           console.error('Failed to initialize camera:', error);
-          setError(error?.message || 'Failed to access camera. Please ensure camera permissions are granted.');
+          const errorMessage = error instanceof Error ? error.message : 'Failed to access camera. Please ensure camera permissions are granted.';
+          setError(errorMessage);
           setLoadingStage('error');
           // Don't close immediately to allow user to see error
           setTimeout(onClose, 5000);
@@ -84,7 +86,7 @@ export function CapturePreviewModal({
 
       return () => {
         // Clean up the global callback
-        (window as any).updateModelLoadingStatus = undefined;
+        (window as unknown as { updateModelLoadingStatus?: (status: string) => void }).updateModelLoadingStatus = undefined;
         
         if (analyzerRef.current) {
           analyzerRef.current.cleanup();

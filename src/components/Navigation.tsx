@@ -7,7 +7,7 @@ import { ProfilePanel } from "./ProfilePanel/ProfilePanel";
 
 export function Navigation() {
   const { setIsCartOpen, items } = useCart();
-  const { isAuthenticated, user, loginWithRedirect, logout } = useAuth();
+  const { isAuthenticated, user, loginWithRedirect } = useAuth();
   const [isProfileOpen, setIsProfileOpen] = useState(false);
   return (
     <nav className="bg-white border-b border-gray-100 px-4 py-3">

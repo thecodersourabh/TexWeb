@@ -80,7 +80,7 @@ export const Addresses = () => {
           isDefault: addr.isDefault
         })));
         setError(null);
-      } catch (error) {
+      } catch {
         setError('Failed to load addresses. Please try again.');
       } finally {
         setLoading(false);
@@ -180,7 +180,7 @@ export const Addresses = () => {
       await AddressService.deleteAddress(id);
       
       setAddresses(prev => prev.filter(addr => addr.id !== id));
-    } catch (error) {
+    } catch {
       setError('Failed to delete address. Please try again.');
     }
   };
@@ -221,7 +221,7 @@ export const Addresses = () => {
         ...address,
         isDefault: address.id === id
       })));
-    } catch (error) {
+    } catch {
       setError('Failed to set default address. Please try again.');
     }
   };

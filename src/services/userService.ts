@@ -3,12 +3,7 @@ import { User, CreateUserRequest } from '../types/api';
 
 export class UserService {
   static async createUser(userData: CreateUserRequest): Promise<User> {
-    try {
-      const result = await ApiService.post<User>('/api/users', userData);
-      return result;
-    } catch (error) {
-      throw error;
-    }
+    return await ApiService.post<User>('/api/users', userData);
   }
 
   static async getUser(userId: string): Promise<User> {

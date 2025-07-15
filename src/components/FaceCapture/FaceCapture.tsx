@@ -65,7 +65,7 @@ export function FaceCapture({ onCaptureComplete, onError }: FaceCaptureProps) {
           });
           videoRef.current.srcObject = stream;
         }
-      } catch (error) {
+      } catch {
         onError('Failed to access camera');
       }
     };
@@ -160,7 +160,7 @@ export function FaceCapture({ onCaptureComplete, onError }: FaceCaptureProps) {
         landmarks: face.mesh as Array<[number, number, number]>,
         texture: texture
       });
-    } catch (error) {
+    } catch {
       onError('Failed to capture face');
     } finally {
       setIsCapturing(false);

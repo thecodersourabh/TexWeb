@@ -2,6 +2,11 @@ import * as THREE from 'three';
 import * as faceapi from '@vladmandic/face-api';
 import { createGLBFromTexture } from './GLBExporter';
 
+interface TensorFlowLike {
+  engine?: () => { reset?: () => void };
+  setBackend?: (backend: string) => Promise<void>;
+}
+
 interface AnalysisResult {
   imageData: ImageData;
   aspectRatio: number;
@@ -47,8 +52,9 @@ export class CameraAnalyzer {
       // Reset tensorflow engine to prevent memory issues
       try {
         console.log('Attempting to reset TensorFlow engine...');
-        if (faceapi.tf && typeof (faceapi.tf as any).engine === 'function') {
-          const engine = (faceapi.tf as any).engine();
+        const tf = faceapi.tf as unknown as TensorFlowLike;
+        if (tf && typeof tf.engine === 'function') {
+          const engine = tf.engine();
           if (engine && typeof engine.reset === 'function') {
             engine.reset();
             console.log('TensorFlow engine reset successful');
@@ -56,8 +62,8 @@ export class CameraAnalyzer {
         }
         
         // Try to set backend to webgl for better performance
-        if (faceapi.tf && 'setBackend' in faceapi.tf && typeof (faceapi.tf as any).setBackend === 'function') {
-          await (faceapi.tf as any).setBackend('webgl');
+        if (tf && 'setBackend' in tf && typeof tf.setBackend === 'function') {
+          await tf.setBackend('webgl');
           console.log('Set TensorFlow backend to WebGL');
         }
       } catch (err) {
@@ -79,12 +85,13 @@ export class CameraAnalyzer {
       const updateStatus = (status: string) => {
         console.log(status);
         // Use the global callback if available
-        if (window && typeof (window as any).updateModelLoadingStatus === 'function') {
-          (window as any).updateModelLoadingStatus(status);
+        const globalWindow = window as unknown as { updateModelLoadingStatus?: (status: string) => void };
+        if (window && typeof globalWindow.updateModelLoadingStatus === 'function') {
+          globalWindow.updateModelLoadingStatus(status);
         }
       };
         // Function to load a model with timeout
-      const loadModelWithTimeout = async (model: any, name: string, path: string, timeoutMs = 20000) => {
+      const loadModelWithTimeout = async (model: { loadFromUri: (path: string) => Promise<void> }, name: string, path: string, timeoutMs = 20000) => {
         return new Promise<void>((resolve, reject) => {
           const timeoutId = setTimeout(() => {
             console.error(`Timeout: Loading ${name} from ${path} timed out after ${timeoutMs / 1000} seconds`);
@@ -102,7 +109,7 @@ export class CameraAnalyzer {
                 clearTimeout(timeoutId);
                 resolve();
               })
-              .catch((error: any) => {
+              .catch((error: unknown) => {
                 console.error(`ERROR: Failed to load ${name} from ${path}:`, error);
                 clearTimeout(timeoutId);
                 reject(error);
@@ -132,7 +139,7 @@ export class CameraAnalyzer {
           console.log(`All face detection models loaded successfully from ${path}`);
           this.modelsLoaded = true;
           return; // Exit the function early on success
-        } catch (error: any) {
+        } catch (error: unknown) {
           console.warn(`Failed to load models from ${path}:`, error);
           lastError = error;
           // Continue to try the next path
@@ -144,7 +151,7 @@ export class CameraAnalyzer {
       const errorMessage = lastError instanceof Error ? lastError.message : String(lastError);
       throw new Error(`Failed to load face detection models from all paths: ${errorMessage || 'Unknown error'}`);
       
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Error during model loading:', error);
       throw new Error('Failed to load face detection models. Please ensure model files are correctly installed.');
     }
@@ -354,7 +361,7 @@ export class CameraAnalyzer {
 
       const faceLandmarks = await this.getFaceLandmarks(this.analysisCanvas);
       if (faceLandmarks) {
-        (window as any).lastFaceLandmarks = faceLandmarks;
+        (window as unknown as { lastFaceLandmarks?: unknown }).lastFaceLandmarks = faceLandmarks;
       }
 
       this.lastAnalysis = {
@@ -445,7 +452,7 @@ export class CameraAnalyzer {
         }
       }
 
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Error creating GLB from camera:', error);
       throw error;
     }

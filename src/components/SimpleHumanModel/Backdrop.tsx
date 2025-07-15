@@ -4,6 +4,7 @@ import { easing } from 'maath';
 import { useRef } from 'react';
 
 export function Backdrop() {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const shadows = useRef<any>(null);
 
   useFrame((_state, delta) => {

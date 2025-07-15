@@ -40,6 +40,7 @@ interface IHumanModelProps {
 }
 
 export function SimpleHumanModel({ modelUrl, modelType = "T-shirt", ...props }: IHumanModelProps) {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const controlsRef = useRef<any>(null);
   const [isMobile, setIsMobile] = useState(window.innerWidth <= 768);
 

@@ -56,7 +56,7 @@ export function ManGLBModel({
 
   // Find the first mesh in the loaded model
   const firstMesh = Object.values(nodes).find(
-    (node: any) => node instanceof THREE.Mesh
+    (node: unknown): node is THREE.Mesh => node instanceof THREE.Mesh
   ) as THREE.Mesh;
 
   if (!firstMesh) {

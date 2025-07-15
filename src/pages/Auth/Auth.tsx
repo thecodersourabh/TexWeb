@@ -2,16 +2,9 @@ import { useAuth0 } from '@auth0/auth0-react';
 import { useAuth } from '../../context/AuthContext';
 
 export const Auth = () => {
-  let authData;
-  try {
-    authData = useAuth0();
-  } catch (error) {
-    console.error('Error with Auth0:', error);
-    return <div>Error with Auth0: {String(error)}</div>;
-  }
-  
-  const { loginWithRedirect, logout, user, isAuthenticated, isLoading } = authData;
+  // Always call hooks at the top level
   const { userCreated, creatingUser } = useAuth();
+  const { loginWithRedirect, logout, user, isAuthenticated, isLoading } = useAuth0();
 
   if (isLoading || creatingUser) {
     return (

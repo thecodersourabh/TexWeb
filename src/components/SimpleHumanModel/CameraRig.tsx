@@ -7,6 +7,7 @@ interface CameraRigProps {
 }
 
 export function CameraRig({ children }: CameraRigProps) {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const group = useRef<any>(null);
 
   useFrame((state, delta) => {

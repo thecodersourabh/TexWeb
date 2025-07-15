@@ -45,7 +45,6 @@ export const SettingsPanel = memo(function SettingsPanel({
     if (!isDragging || !panelRef.current) return;
 
     const deltaY = e.touches[0].clientY - touchStartY.current;
-    const newY = currentY.current + deltaY;
 
     // Only allow dragging down when open, and up when closed
     if ((isPanelOpen && deltaY > 0) || (!isPanelOpen && deltaY < 0)) {

@@ -26,7 +26,7 @@ export async function createGLBFromTexture(
   let geometry: THREE.BufferGeometry;
   
   // Get face landmark points if available
-  const landmarks = (window as any).lastFaceLandmarks;
+  const landmarks = (window as unknown as Record<string, unknown>).lastFaceLandmarks;
   if (landmarks && Array.isArray(landmarks)) {
     console.log('Creating 3D face mesh from', landmarks.length, 'landmarks');
     

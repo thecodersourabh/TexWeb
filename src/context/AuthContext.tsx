@@ -5,7 +5,7 @@ import { UserService } from '../services';
 
 interface AuthContextType {
   isAuthenticated: boolean;
-  user: any;
+  user: unknown;
   loading: boolean;
   logout: () => void;
   loginWithRedirect: () => void;
@@ -50,7 +50,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         const userData = {
           email: user.email,
           name: user.name || '',
-          password: '', // Placeholder password for OAuth users
+          password: '',
           phoneNumber: user.phone_number || '000-000-0000'
         };
         
@@ -72,7 +72,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
               localStorage.setItem(`auth0_${user.sub}`, apiUser.id);
             }
           }
-        } catch (error: any) {
+        } catch (error: unknown) {
           console.error('❌ Error during user creation/lookup:', error);
         }
         
