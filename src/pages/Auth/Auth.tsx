@@ -1,14 +1,27 @@
 import { useAuth0 } from '@auth0/auth0-react';
-import { useNavigate } from 'react-router-dom';
+import { useAuth } from '../../context/AuthContext';
 
 export const Auth = () => {
-  const { loginWithRedirect, logout, user, isAuthenticated, isLoading } = useAuth0();
-  const navigate = useNavigate();
+  let authData;
+  try {
+    authData = useAuth0();
+  } catch (error) {
+    console.error('Error with Auth0:', error);
+    return <div>Error with Auth0: {String(error)}</div>;
+  }
+  
+  const { loginWithRedirect, logout, user, isAuthenticated, isLoading } = authData;
+  const { userCreated, creatingUser } = useAuth();
 
-  if (isLoading) {
+  if (isLoading || creatingUser) {
     return (
       <div className="min-h-screen flex items-center justify-center">
-        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-rose-600"></div>
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-rose-600 mx-auto"></div>
+          {creatingUser && (
+            <p className="mt-4 text-sm text-gray-600">Setting up your account...</p>
+          )}
+        </div>
       </div>
     );
   }
@@ -27,6 +40,9 @@ export const Auth = () => {
               Welcome, {user?.name}!
             </h2>
             <p className="mt-2 text-sm text-gray-600">{user?.email}</p>
+            {userCreated && (
+              <p className="mt-2 text-xs text-green-600"> Account synced with database</p>
+            )}
           </div>
           <div className="mt-8">
             <button
@@ -40,6 +56,7 @@ export const Auth = () => {
       </div>
     );
   }
+  
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-50">
       <div className="absolute inset-0 bg-cover bg-center opacity-30"

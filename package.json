@@ -6,7 +6,7 @@
   "homepage": "https://thecodersourabh.github.io/TexWeb/",
   "license": "MIT",
   "scripts": {
-    "dev": "vite",
+    "dev": "vite build && vite preview",
     "build": "vite build",
     "lint": "eslint .",
     "preview": "vite preview",
@@ -19,6 +19,7 @@
     "@types/three": "^0.156.0",
     "@vladmandic/face-api": "^1.7.15",
     "@vladmandic/human": "^3.3.5",
+    "axios": "^1.10.0",
     "canvas": "^3.1.0",
     "lucide-react": "^0.344.0",
     "react": "^18.3.1",

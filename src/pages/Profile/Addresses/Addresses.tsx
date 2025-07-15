@@ -1,75 +1,229 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { useAuth0 } from '@auth0/auth0-react';
 import { 
   MapPin, 
   Plus, 
   Home, 
   Building2, 
   Briefcase,
-  MoreVertical, 
   Edit, 
   Trash,
   X
 } from 'lucide-react';
+import { AddressService } from '../../../services';
+import { Address as ApiAddress, CreateAddressRequest, UpdateAddressRequest } from '../../../types/api';
 
 interface Address {
-  id: string;
-  type: 'home' | 'office' | 'other';
+  id?: string;
+  type: 'home' | 'office' | 'work' | 'other';
   name: string;
-  address: string;
+  street: string;
   city: string;
   state: string;
-  pincode: string;
+  zipCode: string;
+  country: string;
   phone: string;
   isDefault: boolean;
 }
 
 export const Addresses = () => {
+  const { user, isAuthenticated } = useAuth0();
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [editingAddress, setEditingAddress] = useState<Address | null>(null);
+  const [addresses, setAddresses] = useState<Address[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  
   const [formData, setFormData] = useState<Partial<Address>>({
     type: 'home',
     name: '',
-    address: '',
+    street: '',
     city: '',
     state: '',
-    pincode: '',
+    zipCode: '',
+    country: '',
     phone: '',
     isDefault: false
   });
-  const [addresses, setAddresses] = useState<Address[]>([
-    {
-      id: '1',
-      type: 'home',
-      name: 'John Doe',
-      address: '123 Main Street',
-      city: 'New York',
-      state: 'NY',
-      pincode: '10001',
-      phone: '123-456-7890',
-      isDefault: true
-    }
-  ]);
+
+  // Load addresses when component mounts
+  useEffect(() => {
+    const loadAddresses = async () => {
+      if (!isAuthenticated || !user?.sub) {
+        setLoading(false);
+        return;
+      }
+
+      try {
+        setLoading(true);
+        // Get the actual user ID from our mapping
+        const actualUserId = localStorage.getItem(`auth0_${user.sub}`);
+        if (!actualUserId) {
+          setError('User not found. Please try signing out and back in.');
+          setLoading(false);
+          return;
+        }
+        
+        const userAddresses = await AddressService.getUserAddresses(actualUserId);
+        
+        setAddresses(userAddresses.map((addr: ApiAddress) => ({
+          id: addr.id,
+          type: addr.type as 'home' | 'office' | 'work' | 'other',
+          name: addr.userId || '',
+          street: addr.street,
+          city: addr.city,
+          state: addr.state,
+          zipCode: addr.zipCode,
+          country: addr.country,
+          phone: addr.phone,
+          isDefault: addr.isDefault
+        })));
+        setError(null);
+      } catch (error) {
+        setError('Failed to load addresses. Please try again.');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadAddresses();
+  }, [isAuthenticated, user]);
 
   const getAddressIcon = (type: Address['type']) => {
     switch (type) {
       case 'home':
         return <Home className="h-5 w-5" />;
       case 'office':
+      case 'work':
         return <Briefcase className="h-5 w-5" />;
       default:
         return <Building2 className="h-5 w-5" />;
     }
   };
 
-  const handleDelete = (id: string) => {
-    setAddresses(addresses.filter(address => address.id !== id));
+  const handleSave = async () => {
+    if (!user?.sub || !formData.street || !formData.city || !formData.state) {
+      setError('Please fill in all required fields');
+      return;
+    }
+
+    // Get the actual user ID from our mapping
+    const actualUserId = localStorage.getItem(`auth0_${user.sub}`);
+    if (!actualUserId) {
+      setError('User not found. Please try signing out and back in.');
+      return;
+    }
+
+    setSaving(true);
+    setError(null);
+
+    try {
+      const addressData: CreateAddressRequest = {
+        userId: actualUserId,
+        type: formData.type || 'home',
+        street: formData.street!,
+        city: formData.city!,
+        state: formData.state!,
+        zipCode: formData.zipCode || '',
+        country: formData.country || 'United States',
+        phone: formData.phone || '',
+        isDefault: formData.isDefault || false
+      };
+
+      let savedAddress: ApiAddress;
+      if (editingAddress?.id) {
+        // Update existing address
+        const updateData: UpdateAddressRequest = {
+          id: editingAddress.id,
+          ...addressData
+        };
+        savedAddress = await AddressService.updateAddress(updateData);
+        setAddresses(prev => prev.map(addr => 
+          addr.id === editingAddress.id 
+            ? { ...addr, ...formData } as Address
+            : addr
+        ));
+      } else {
+        // Create new address
+        savedAddress = await AddressService.createAddress(addressData);
+        const newAddress: Address = {
+          id: savedAddress.id,
+          type: savedAddress.type as 'home' | 'office' | 'work' | 'other',
+          name: formData.name || '',
+          street: savedAddress.street,
+          city: savedAddress.city,
+          state: savedAddress.state,
+          zipCode: savedAddress.zipCode,
+          country: savedAddress.country,
+          phone: savedAddress.phone,
+          isDefault: savedAddress.isDefault
+        };
+        setAddresses(prev => [...prev, newAddress]);
+      }
+
+      // Reset form and close modal
+      cleanupForm();
+      
+    } catch (error) {
+      console.error('❌ Error saving address:', error);
+      setError('Failed to save address. Please try again.');
+    } finally {
+      setSaving(false);
+    }
   };
 
-  const handleSetDefault = (id: string) => {
-    setAddresses(addresses.map(address => ({
-      ...address,
-      isDefault: address.id === id
-    })));
+  const handleDelete = async (id: string) => {
+    if (!id) return;
+
+    try {
+      await AddressService.deleteAddress(id);
+      
+      setAddresses(prev => prev.filter(addr => addr.id !== id));
+    } catch (error) {
+      setError('Failed to delete address. Please try again.');
+    }
+  };
+
+  const handleSetDefault = async (id: string) => {
+    try {
+      // Update the address to be default
+      const addressToUpdate = addresses.find(addr => addr.id === id);
+      if (!addressToUpdate) return;
+
+      // Get the actual user ID from our mapping
+      const actualUserId = localStorage.getItem(`auth0_${user?.sub}`);
+      if (!actualUserId) {
+        setError('User not found. Please try signing out and back in.');
+        return;
+      }
+
+      const updatedAddress = { ...addressToUpdate, isDefault: true };
+      console.log('🔄 Setting default address:', id);
+      
+      const updateData: UpdateAddressRequest = {
+        id: id,
+        userId: actualUserId,
+        type: updatedAddress.type,
+        street: updatedAddress.street,
+        city: updatedAddress.city,
+        state: updatedAddress.state,
+        zipCode: updatedAddress.zipCode,
+        country: updatedAddress.country,
+        phone: updatedAddress.phone,
+        isDefault: true
+      };
+      
+      await AddressService.updateAddress(updateData);
+      
+      
+      setAddresses(prev => prev.map(address => ({
+        ...address,
+        isDefault: address.id === id
+      })));
+    } catch (error) {
+      setError('Failed to set default address. Please try again.');
+    }
   };
 
   const cleanupForm = () => {
@@ -78,49 +232,20 @@ export const Addresses = () => {
     setFormData({
       type: 'home',
       name: '',
-      address: '',
+      street: '',
       city: '',
       state: '',
-      pincode: '',
+      zipCode: '',
+      country: 'United States',
       phone: '',
       isDefault: false
     });
+    setError(null);
   };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    
-    const newAddress = {
-      ...formData,
-      id: editingAddress ? editingAddress.id : Math.random().toString(36).substr(2, 9),
-    } as Address;
-
-    if (editingAddress) {
-      // Editing existing address
-      setAddresses(addresses.map(addr => {
-        if (addr.id === editingAddress.id) {
-          return {
-            ...newAddress,
-            isDefault: editingAddress.isDefault || newAddress.isDefault
-          };
-        }
-        // If the new address is set as default, unset others
-        return newAddress.isDefault ? { ...addr, isDefault: false } : addr;
-      }));
-    } else {
-      // Adding new address
-      if (newAddress.isDefault) {
-        setAddresses(addresses.map(addr => ({ ...addr, isDefault: false })).concat(newAddress));
-      } else {
-        // If this is the first address, make it default
-        if (addresses.length === 0) {
-          newAddress.isDefault = true;
-        }
-        setAddresses([...addresses, newAddress]);
-      }
-    }
-
-    cleanupForm();
+    handleSave();
   };
 
   return (
@@ -148,7 +273,19 @@ export const Addresses = () => {
       {/* Main Content - Scrollable */}
       <div className="flex-1 overflow-y-auto">
         <div className="px-4 sm:px-6 py-4 sm:py-6">
-          {addresses.length === 0 ? (
+          {/* Error Message */}
+          {error && (
+            <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-md">
+              <p className="text-red-600 text-sm">{error}</p>
+            </div>
+          )}
+
+          {/* Loading State */}
+          {loading ? (
+            <div className="flex justify-center py-8">
+              <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-rose-600"></div>
+            </div>
+          ) : addresses.length === 0 ? (
             <div className="text-center py-12">
               <MapPin className="h-16 w-16 text-gray-400 mx-auto mb-4" />
               <h3 className="text-lg font-medium text-gray-900">No addresses saved</h3>
@@ -176,8 +313,8 @@ export const Addresses = () => {
                     </div>
                     <div className="flex-1 min-w-0">
                       <h3 className="text-base font-medium text-gray-900 truncate pr-16">{address.name}</h3>
-                      <p className="mt-1 text-sm text-gray-600 break-words">{address.address}</p>
-                      <p className="text-sm text-gray-600">{address.city}, {address.state} {address.pincode}</p>
+                      <p className="mt-1 text-sm text-gray-600 break-words">{address.street}</p>
+                      <p className="text-sm text-gray-600">{address.city}, {address.state} {address.zipCode}</p>
                       <p className="mt-2 text-sm text-gray-600">Phone: {address.phone}</p>
                       
                       <div className="mt-3 pt-3 border-t border-gray-100 flex flex-wrap items-center gap-3 sm:gap-4">
@@ -195,14 +332,14 @@ export const Addresses = () => {
                         {!address.isDefault && (
                           <>
                             <button
-                              onClick={() => handleDelete(address.id)}
+                              onClick={() => handleDelete(address.id!)}
                               className="inline-flex items-center px-2 py-1 text-sm text-red-600 hover:text-red-700 rounded-md hover:bg-red-50"
                             >
                               <Trash className="h-4 w-4 mr-1" />
                               Delete
                             </button>
                             <button
-                              onClick={() => handleSetDefault(address.id)}
+                              onClick={() => handleSetDefault(address.id!)}
                               className="inline-flex items-center px-2 py-1 text-sm text-rose-600 hover:text-rose-700 rounded-md hover:bg-rose-50"
                             >
                               <MapPin className="h-4 w-4 mr-1" />
@@ -302,8 +439,8 @@ export const Addresses = () => {
                       </label>
                       <input
                         type="text"
-                        value={formData.address || ''}
-                        onChange={(e) => setFormData({ ...formData, address: e.target.value })}
+                        value={formData.street || ''}
+                        onChange={(e) => setFormData({ ...formData, street: e.target.value })}
                         className="mt-1 block w-full border-gray-300 rounded-lg shadow-sm focus:ring-rose-500 focus:border-rose-500 text-base"
                         placeholder="Enter street address"
                         required
@@ -341,14 +478,14 @@ export const Addresses = () => {
 
                     <div>
                       <label className="block text-sm font-medium text-gray-700">
-                        PIN Code
+                        ZIP Code
                       </label>
                       <input
                         type="text"
-                        value={formData.pincode || ''}
-                        onChange={(e) => setFormData({ ...formData, pincode: e.target.value })}
+                        value={formData.zipCode || ''}
+                        onChange={(e) => setFormData({ ...formData, zipCode: e.target.value })}
                         className="mt-1 block w-full border-gray-300 rounded-lg shadow-sm focus:ring-rose-500 focus:border-rose-500 text-base"
-                        placeholder="Enter PIN code"
+                        placeholder="Enter ZIP code"
                         required
                       />
                     </div>
@@ -379,9 +516,10 @@ export const Addresses = () => {
                         </button>
                         <button
                           type="submit"
-                          className="w-full sm:w-1/2 inline-flex justify-center px-4 py-2.5 border border-transparent text-base font-medium rounded-lg text-white bg-rose-600 hover:bg-rose-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-rose-500"
+                          disabled={saving || !formData.street || !formData.city || !formData.state}
+                          className="w-full sm:w-1/2 inline-flex justify-center px-4 py-2.5 border border-transparent text-base font-medium rounded-lg text-white bg-rose-600 hover:bg-rose-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-rose-500 disabled:opacity-50 disabled:cursor-not-allowed"
                         >
-                          {editingAddress ? 'Save Changes' : 'Add Address'}
+                          {saving ? 'Saving...' : (editingAddress ? 'Save Changes' : 'Add Address')}
                         </button>
                       </div>
                     </div>
