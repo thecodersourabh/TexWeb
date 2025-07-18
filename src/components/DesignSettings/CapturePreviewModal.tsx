@@ -32,12 +32,10 @@ export function CapturePreviewModal({
         setLoadingStage('models');
         
         try {
-          console.log('Initializing camera...');
           analyzerRef.current = CameraAnalyzer.getInstance();
           
           // Set a callback to get model loading status
           (window as unknown as { updateModelLoadingStatus?: (status: string) => void }).updateModelLoadingStatus = (status: string) => {
-            console.log('Model loading status:', status);
             setModelLoadingStatus(status);
           };
           
@@ -48,7 +46,6 @@ export function CapturePreviewModal({
             setLoadingStage('models');
             setModelLoadingStatus('Loading face detection models...');
             await analyzerRef.current.initializeCamera(videoRef.current!);
-            console.log('Camera initialized, starting analysis...');
             setLoadingStage('camera');
             setModelLoadingStatus('Camera initialized, starting face detection...');
             
@@ -59,9 +56,7 @@ export function CapturePreviewModal({
               }
             });
             
-            console.log('Analysis started');
           } catch (modelError: unknown) {
-            console.error('Failed to initialize face models:', modelError);
             const errorMessage = modelError instanceof Error ? modelError.message : 'Unknown error';
             setError(`Failed to load face detection models: ${errorMessage}. 
               Try reloading the page or using a different browser.`);
@@ -71,7 +66,6 @@ export function CapturePreviewModal({
             return;
           }
         } catch (error: unknown) {
-          console.error('Failed to initialize camera:', error);
           const errorMessage = error instanceof Error ? error.message : 'Failed to access camera. Please ensure camera permissions are granted.';
           setError(errorMessage);
           setLoadingStage('error');
@@ -103,18 +97,15 @@ export function CapturePreviewModal({
     setIsProcessing(true);
     
     try {
-      console.log('Starting capture process...');
       const glbUrl = await analyzerRef.current.captureAndCreateGLB();
       
       if (glbUrl) {
-        console.log('Capture successful, GLB URL length:', glbUrl.length);
         onCapture(glbUrl);
         onClose();
       } else {
         throw new Error('Failed to create GLB - no URL returned');
       }
     } catch (err) {
-      console.error('Capture failed:', err);
       setError('Failed to process image. Please try again.');
     } finally {
       setIsProcessing(false);

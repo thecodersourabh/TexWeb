@@ -37,7 +37,7 @@ export const Addresses = () => {
   
   const [formData, setFormData] = useState<Partial<Address>>({
     type: 'home',
-    name: '',
+    name: user?.name || user?.email || '',
     street: '',
     city: '',
     state: '',
@@ -68,9 +68,9 @@ export const Addresses = () => {
         const userAddresses = await AddressService.getUserAddresses(actualUserId);
         
         setAddresses(userAddresses.map((addr: ApiAddress) => ({
-          id: addr.id,
+          id: addr.addressId,
           type: addr.type as 'home' | 'office' | 'work' | 'other',
-          name: addr.userId || '',
+          name: user?.name || user?.email || '',
           street: addr.street,
           city: addr.city,
           state: addr.state,
@@ -81,7 +81,6 @@ export const Addresses = () => {
         })));
         setError(null);
       } catch {
-        setError('Failed to load addresses. Please try again.');
       } finally {
         setLoading(false);
       }
@@ -89,6 +88,16 @@ export const Addresses = () => {
 
     loadAddresses();
   }, [isAuthenticated, user]);
+
+  // Update form data when user becomes available
+  useEffect(() => {
+    if (user && !editingAddress) {
+      setFormData(prev => ({
+        ...prev,
+        name: user.name || user.email || ''
+      }));
+    }
+  }, [user, editingAddress]);
 
   const getAddressIcon = (type: Address['type']) => {
     switch (type) {
@@ -141,14 +150,26 @@ export const Addresses = () => {
         savedAddress = await AddressService.updateAddress(updateData);
         setAddresses(prev => prev.map(addr => 
           addr.id === editingAddress.id 
-            ? { ...addr, ...formData } as Address
+            ? { 
+                ...addr, 
+                type: formData.type || addr.type,
+                name: user?.name || user?.email || '',
+                street: formData.street || addr.street,
+                city: formData.city || addr.city,
+                state: formData.state || addr.state,
+                zipCode: formData.zipCode || addr.zipCode,
+                country: formData.country || addr.country,
+                phone: formData.phone || addr.phone,
+                isDefault: formData.isDefault !== undefined ? formData.isDefault : addr.isDefault
+              } as Address
             : addr
         ));
       } else {
         // Create new address
         savedAddress = await AddressService.createAddress(addressData);
+        console.log('📡 API Response for new address:', savedAddress);
         const newAddress: Address = {
-          id: savedAddress.id,
+          id: savedAddress.addressId,
           type: savedAddress.type as 'home' | 'office' | 'work' | 'other',
           name: formData.name || '',
           street: savedAddress.street,
@@ -157,7 +178,7 @@ export const Addresses = () => {
           zipCode: savedAddress.zipCode,
           country: savedAddress.country,
           phone: savedAddress.phone,
-          isDefault: savedAddress.isDefault
+          isDefault: formData.isDefault || false
         };
         setAddresses(prev => [...prev, newAddress]);
       }
@@ -231,7 +252,7 @@ export const Addresses = () => {
     setEditingAddress(null);
     setFormData({
       type: 'home',
-      name: '',
+      name: user?.name || user?.email || '',
       street: '',
       city: '',
       state: '',
@@ -259,7 +280,20 @@ export const Addresses = () => {
               <h1 className="text-lg sm:text-xl font-semibold text-gray-900">Saved Addresses</h1>
             </div>
             <button
-              onClick={() => setIsAddModalOpen(true)}
+              onClick={() => {
+                setFormData({
+                  type: 'home',
+                  name: user?.name || user?.email || '',
+                  street: '',
+                  city: '',
+                  state: '',
+                  zipCode: '',
+                  country: 'United States',
+                  phone: '',
+                  isDefault: false
+                });
+                setIsAddModalOpen(true);
+              }}
               className="inline-flex items-center px-3 sm:px-4 py-2 border border-transparent text-sm font-medium rounded-lg shadow-sm text-white bg-rose-600 hover:bg-rose-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-rose-500"
             >
               <Plus className="h-4 w-4 sm:h-5 sm:w-5 mr-1 sm:mr-2" />
@@ -295,7 +329,9 @@ export const Addresses = () => {
             </div>
           ) : (
             <div className="grid gap-3 sm:gap-4 md:gap-6 md:grid-cols-2">
-              {addresses.map((address) => (
+              {addresses.map((address) => {
+                console.log('🏠 Rendering address:', address.id, 'isDefault:', address.isDefault, 'type:', address.type);
+                return (
                 <div
                   key={address.id}
                   className="relative bg-white sm:bg-gray-50 rounded-lg p-3 sm:p-4 border border-gray-200 hover:border-gray-300 transition-colors shadow-sm hover:shadow"
@@ -329,10 +365,13 @@ export const Addresses = () => {
                           <Edit className="h-4 w-4 mr-1" />
                           Edit
                         </button>
-                        {!address.isDefault && (
+                        {!address.isDefault && address.id && (
                           <>
                             <button
-                              onClick={() => handleDelete(address.id!)}
+                              onClick={() => {
+                                console.log('🗑️ Delete button clicked for address:', address.id, 'isDefault:', address.isDefault);
+                                handleDelete(address.id!);
+                              }}
                               className="inline-flex items-center px-2 py-1 text-sm text-red-600 hover:text-red-700 rounded-md hover:bg-red-50"
                             >
                               <Trash className="h-4 w-4 mr-1" />
@@ -351,7 +390,8 @@ export const Addresses = () => {
                     </div>
                   </div>
                 </div>
-              ))}
+                );
+              })}
             </div>
           )}
         </div>

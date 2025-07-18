@@ -8,7 +8,7 @@ export interface User {
 }
 
 export interface Address {
-  id: string;
+  addressId: string;
   userId: string;
   type: 'home' | 'office' | 'work' | 'other';
   street: string;
@@ -27,7 +27,7 @@ export interface CreateUserRequest {
   name: string;
   phoneNumber?: string;
   auth0Id?: string;
-  hasPassword?: boolean;
+  password?: string;
 }
 
 export interface CreateAddressRequest {

@@ -21,7 +21,6 @@ export class ApiService {
 
     if (!response.ok) {
       const errorText = await response.text();
-      console.error('❌ ApiService error response:', errorText);
       throw new Error(`API Error ${response.status}: ${errorText}`);
     }
 
