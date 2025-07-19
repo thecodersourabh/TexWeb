@@ -1,0 +1,10 @@
+{
+  "build": {
+    "commands": [
+      "rm -rf node_modules package-lock.json",
+      "npm install --force",
+      "npm install @rollup/rollup-linux-x64-gnu --force --save-dev",
+      "npm run build"
+    ]
+  }
+}
