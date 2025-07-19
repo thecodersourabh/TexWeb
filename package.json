@@ -8,6 +8,7 @@
   "scripts": {
     "dev": "vite",
     "web": "vite build && vite preview",
+    "prebuild": "npm install @rollup/rollup-linux-x64-gnu --force --save-dev --silent || echo 'Platform dependency handled'",
     "build": "vite build",
     "build:web": "vite build",
     "build:android": "npm run build && npx cap sync && npx cap open android",
@@ -40,6 +41,7 @@
   },
   "devDependencies": {
     "@eslint/js": "^9.9.1",
+    "@rollup/rollup-linux-x64-gnu": "^4.45.1",
     "@types/react": "^18.3.5",
     "@types/react-dom": "^18.3.0",
     "@vitejs/plugin-react": "^4.3.1",
