@@ -6,8 +6,9 @@
   "homepage": "https://thecodersourabh.github.io/TexWeb/",
   "license": "MIT",
   "scripts": {
-    "dev": "vite build && vite preview",
-    "build": "vite build",
+    "dev": "vite",
+    "web": "vite build && vite preview",
+    "build": "npm install @rollup/rollup-linux-x64-gnu@latest --force --save-dev --silent || echo 'Rollup dependency handled' && vite build",
     "build:web": "vite build",
     "build:android": "npm run build && npx cap sync && npx cap open android",
     "build:ci": "npm ci && vite build",
@@ -53,5 +54,8 @@
     "typescript": "^5.5.3",
     "typescript-eslint": "^8.3.0",
     "vite": "^5.4.2"
+  },
+  "optionalDependencies": {
+    "@rollup/rollup-linux-x64-gnu": "^4.45.1"
   }
 }
