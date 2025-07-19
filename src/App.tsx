@@ -1,6 +1,7 @@
 import { HashRouter as Router, Routes, Route } from "react-router-dom";
 import { useTransition } from "react";
 import { Auth0Provider } from "@auth0/auth0-react";
+import { Capacitor } from '@capacitor/core';
 import { Navigation } from "./components/Navigation";
 import { ChatBot } from "./components/ChatBot";
 import { Cart } from "./components/Cart";
@@ -27,19 +28,46 @@ const routerFutureConfig = {
 function App() {
   const [isPending] = useTransition();
 
+  // Cross-platform auth configuration
+  const getAuthConfig = () => {
+    const baseConfig = {
+      audience: config.authorizationParams.audience,
+    };
+
+    if (Capacitor.isNativePlatform()) {
+      // Mobile app configuration
+      return {
+        ...baseConfig,
+        redirect_uri: 'com.texweb.app://callback',
+      };
+    } else {
+      // Web configuration
+      return {
+        ...baseConfig,
+        redirect_uri: getRedirectUri(),
+      };
+    }
+  };
+
+  // Cross-platform redirect handling
+  const handleRedirectCallback = (appState: any) => {
+    if (Capacitor.isNativePlatform()) {
+      // Mobile: Use React Router navigation
+      window.history.replaceState({}, '', appState?.returnTo || '/');
+    } else {
+      // Web: Use window.location
+      window.location.href = appState?.returnTo || window.location.pathname;
+    }
+  };
+
   return (
     <Router future={routerFutureConfig}>
       <Auth0Provider
         domain={config.domain}
         clientId={config.clientId}
-        authorizationParams={{
-          redirect_uri: getRedirectUri(),
-          audience: config.authorizationParams.audience,
-        }}
+        authorizationParams={getAuthConfig()}
         cacheLocation="localstorage"
-        onRedirectCallback={(appState) => {
-          window.location.href = appState?.returnTo || window.location.pathname;
-        }}
+        onRedirectCallback={handleRedirectCallback}
       >
         <CartProvider>
           <AuthProvider>
