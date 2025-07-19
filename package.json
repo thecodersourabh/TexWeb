@@ -8,7 +8,7 @@
   "scripts": {
     "dev": "vite",
     "web": "vite build && vite preview",
-    "build": "npm install @rollup/rollup-linux-x64-gnu@latest --force --save-dev --silent || echo 'Rollup dependency handled' && vite build",
+    "build": "vite build",
     "build:web": "vite build",
     "build:android": "npm run build && npx cap sync && npx cap open android",
     "build:ci": "npm ci && vite build",

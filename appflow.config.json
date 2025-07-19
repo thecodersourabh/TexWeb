@@ -7,12 +7,8 @@
       "npm config set audit false",
       "rm -rf node_modules package-lock.json || echo 'Clean complete'",
       "npm install --force --include=optional",
-      "npm install @rollup/rollup-linux-x64-gnu@4.45.1 --force --save-dev --include=optional || echo 'Platform dependency handled'",
-      "vite build"
-    ],
-    "environment": {
-      "NODE_OPTIONS": "--max-old-space-size=4096",
-      "CI": "true"
-    }
+      "npm install @rollup/rollup-linux-x64-gnu@latest --force --save-dev || echo 'Platform dependency handled'",
+      "npm run build"
+    ]
   }
 }
