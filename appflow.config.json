@@ -1,12 +1,18 @@
 {
   "build": {
     "commands": [
-      "rm -rf node_modules package-lock.json || true",
-      "npm install --force --no-audit --no-fund",
-      "npm run build:ci"
-    ]
-  },
-  "dependencies": {
-    "installCommand": "npm install --force --no-audit --no-fund"
+      "echo 'Starting CI build process...'",
+      "npm config set legacy-peer-deps true",
+      "npm config set fund false",
+      "npm config set audit false",
+      "rm -rf node_modules package-lock.json || echo 'Clean complete'",
+      "npm install --force --include=optional",
+      "npm install @rollup/rollup-linux-x64-gnu@4.45.1 --force --save-dev --include=optional || echo 'Platform dependency handled'",
+      "vite build"
+    ],
+    "environment": {
+      "NODE_OPTIONS": "--max-old-space-size=4096",
+      "CI": "true"
+    }
   }
 }
