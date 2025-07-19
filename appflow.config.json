@@ -1,0 +1,12 @@
+{
+  "build": {
+    "commands": [
+      "rm -rf node_modules package-lock.json || true",
+      "npm install --force --no-audit --no-fund",
+      "npm run build:ci"
+    ]
+  },
+  "dependencies": {
+    "installCommand": "npm install --force --no-audit --no-fund"
+  }
+}
