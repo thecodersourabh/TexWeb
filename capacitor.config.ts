@@ -5,13 +5,19 @@ const config: CapacitorConfig = {
   appName: 'TexWeb',
   webDir: 'dist',
   server: {
-    androidScheme: 'https'
+    androidScheme: 'https',
+    cleartext: true
+  },
+  android: {
+    allowMixedContent: true
   },
   plugins: {
     SplashScreen: {
       launchShowDuration: 2000,
       backgroundColor: "#ffffff",
-      showSpinner: false
+      showSpinner: false,
+      androidSplashResourceName: "splash",
+      androidScaleType: "CENTER_CROP"
     }
   }
 };

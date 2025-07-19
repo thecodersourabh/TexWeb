@@ -475,10 +475,6 @@ export class CameraAnalyzer {
           
           // Set texture properties for optimal display
           texture.colorSpace = THREE.SRGBColorSpace;
-          // Handle compatibility with older Three.js versions
-          if ('encoding' in texture) {
-            texture.encoding = THREE.sRGBEncoding;
-          }
           
           // Set additional texture properties
           texture.needsUpdate = true;

@@ -29,7 +29,6 @@ export class ImageToGLBConverter {
           imageUrl,
           (texture) => {
             texture.colorSpace = THREE.SRGBColorSpace;
-            texture.encoding = THREE.sRGBEncoding;
             texture.needsUpdate = true;
 
             // Generate mipmaps for better quality

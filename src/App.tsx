@@ -32,6 +32,7 @@ function App() {
   const getAuthConfig = () => {
     const baseConfig = {
       audience: config.authorizationParams.audience,
+      scope: "openid profile email",
     };
 
     if (Capacitor.isNativePlatform()) {
@@ -68,6 +69,8 @@ function App() {
         authorizationParams={getAuthConfig()}
         cacheLocation="localstorage"
         onRedirectCallback={handleRedirectCallback}
+        useRefreshTokens={true}
+        useRefreshTokensFallback={false}
       >
         <CartProvider>
           <AuthProvider>
