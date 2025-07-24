@@ -36,7 +36,7 @@ function SafeApp() {
     // Add a small delay to ensure everything is loaded
     const timer = setTimeout(() => {
       setIsLoading(false);
-    }, 1000);
+    }, 500);
 
     // Initialize deep link handler for mobile platforms
     if (Capacitor.isNativePlatform()) {
