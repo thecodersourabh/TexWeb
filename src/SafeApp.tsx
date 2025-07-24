@@ -19,6 +19,7 @@ import { Addresses } from "./pages/Profile/Addresses/Addresses";
 import { Wishlist } from "./pages/Profile/Wishlist/Wishlist";
 import * as config from "./auth_config.json";
 import { getRedirectUri } from "./utils/getRedirectUri";
+import { deepLinkHandler } from "./utils/DeepLinkHandler";
 
 // Configure future flags for React Router v7
 const routerFutureConfig = {
@@ -37,7 +38,17 @@ function SafeApp() {
       setIsLoading(false);
     }, 1000);
 
-    return () => clearTimeout(timer);
+    // Initialize deep link handler for mobile platforms
+    if (Capacitor.isNativePlatform()) {
+      deepLinkHandler.initialize();
+    }
+
+    return () => {
+      clearTimeout(timer);
+      if (Capacitor.isNativePlatform()) {
+        deepLinkHandler.cleanup();
+      }
+    };
   }, []);
 
   // Cross-platform auth configuration
