@@ -195,18 +195,18 @@ export class DeepLinkHandler {
             try {
               auth0Client.handleRedirectCallback().then(() => {
                 console.log('✅ DeepLinkHandler: Auth0 handleRedirectCallback completed');
-                this.completeAuthFlow(url, code, accessToken);
+                this.exchangeCodeForTokens(code!, params.get('state') || '', url, accessToken);
               }).catch((error: any) => {
                 console.error('❌ DeepLinkHandler: Auth0 handleRedirectCallback failed:', error);
-                this.completeAuthFlow(url, code, accessToken);
+                this.exchangeCodeForTokens(code!, params.get('state') || '', url, accessToken);
               });
             } catch (error) {
               console.error('❌ DeepLinkHandler: Error calling handleRedirectCallback:', error);
-              this.completeAuthFlow(url, code, accessToken);
+              this.exchangeCodeForTokens(code!, params.get('state') || '', url, accessToken);
             }
           } else {
-            console.log('⚠️ DeepLinkHandler: Auth0 client not found, proceeding with manual flow');
-            this.completeAuthFlow(url, code, accessToken);
+            console.log('⚠️ DeepLinkHandler: Auth0 client not found, using manual token exchange');
+            this.exchangeCodeForTokens(code!, params.get('state') || '', url, accessToken);
           }
         }, 100);
       } else {
@@ -274,6 +274,146 @@ export class DeepLinkHandler {
         }, 500);
       }, 1000);
     }, 1000);
+  }
+
+  private async exchangeCodeForTokens(code: string, _state: string, originalUrl: string, accessToken: string | null): Promise<void> {
+    console.log('💱 DeepLinkHandler: Starting token exchange process...');
+    
+    try {
+      // Get Auth0 configuration from the window or import it
+      const auth0Config = await this.getAuth0Config();
+      
+      if (!auth0Config) {
+        console.error('❌ DeepLinkHandler: Cannot get Auth0 configuration');
+        this.completeAuthFlow(originalUrl, code, accessToken);
+        return;
+      }
+
+      const { domain, clientId } = auth0Config;
+      
+      console.log('🔧 DeepLinkHandler: Using Auth0 config:', { domain, clientId });
+      
+      // Prepare the token exchange request
+      const tokenUrl = `https://${domain}/oauth/token`;
+      const requestBody = {
+        grant_type: 'authorization_code',
+        client_id: clientId,
+        code: code,
+        redirect_uri: 'com.texweb.app://callback',
+      };
+      
+      console.log('📡 DeepLinkHandler: Making token exchange request to:', tokenUrl);
+      console.log('📡 DeepLinkHandler: Request body:', { ...requestBody, code: code.substring(0, 10) + '...' });
+      
+      const response = await fetch(tokenUrl, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(requestBody),
+      });
+      
+      console.log('📡 DeepLinkHandler: Token exchange response status:', response.status);
+      
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error('❌ DeepLinkHandler: Token exchange failed:', response.status, errorText);
+        this.completeAuthFlow(originalUrl, code, accessToken);
+        return;
+      }
+      
+      const tokenData = await response.json();
+      console.log('✅ DeepLinkHandler: Token exchange successful');
+      console.log('🔑 DeepLinkHandler: Received tokens:', {
+        hasAccessToken: !!tokenData.access_token,
+        hasIdToken: !!tokenData.id_token,
+        hasRefreshToken: !!tokenData.refresh_token,
+        expiresIn: tokenData.expires_in
+      });
+      
+      // Store tokens in localStorage using Auth0's format
+      this.storeAuth0Tokens(tokenData, clientId);
+      
+      // Complete the authentication flow
+      this.completeAuthFlow(originalUrl, code, tokenData.access_token);
+      
+    } catch (error) {
+      console.error('❌ DeepLinkHandler: Error during token exchange:', error);
+      this.completeAuthFlow(originalUrl, code, accessToken);
+    }
+  }
+
+  private async getAuth0Config(): Promise<{ domain: string; clientId: string } | null> {
+    try {
+      // Try to get config from the global window object or import
+      const configModule = await import('../auth_config.json');
+      return {
+        domain: configModule.domain,
+        clientId: configModule.clientId
+      };
+    } catch (error) {
+      console.error('❌ DeepLinkHandler: Failed to load Auth0 config:', error);
+      return null;
+    }
+  }
+
+  private storeAuth0Tokens(tokenData: any, clientId: string): void {
+    console.log('💾 DeepLinkHandler: Storing Auth0 tokens...');
+    
+    try {
+      // Store tokens in the format that Auth0 React SDK expects
+      const auth0Key = `@@auth0spajs@@::${clientId}::https://dev-arrows.au.auth0.com/api/v2/::openid profile email`;
+      
+      const auth0Data = {
+        body: {
+          access_token: tokenData.access_token,
+          id_token: tokenData.id_token,
+          scope: tokenData.scope || 'openid profile email',
+          expires_in: tokenData.expires_in || 86400,
+          token_type: tokenData.token_type || 'Bearer',
+        },
+        expiresAt: Math.floor(Date.now() / 1000) + (tokenData.expires_in || 86400)
+      };
+      
+      localStorage.setItem(auth0Key, JSON.stringify(auth0Data));
+      console.log('💾 DeepLinkHandler: Stored tokens with key:', auth0Key);
+      
+      // Also store user info if available in id_token
+      if (tokenData.id_token) {
+        try {
+          const payload = this.parseJWT(tokenData.id_token);
+          const userKey = `${auth0Key}::user`;
+          localStorage.setItem(userKey, JSON.stringify(payload));
+          console.log('👤 DeepLinkHandler: Stored user info:', {
+            sub: payload.sub,
+            email: payload.email,
+            name: payload.name
+          });
+        } catch (error) {
+          console.warn('⚠️ DeepLinkHandler: Failed to parse ID token:', error);
+        }
+      }
+      
+    } catch (error) {
+      console.error('❌ DeepLinkHandler: Error storing tokens:', error);
+    }
+  }
+
+  private parseJWT(token: string): any {
+    try {
+      const base64Url = token.split('.')[1];
+      const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
+      const jsonPayload = decodeURIComponent(
+        atob(base64)
+          .split('')
+          .map(c => '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2))
+          .join('')
+      );
+      return JSON.parse(jsonPayload);
+    } catch (error) {
+      console.error('❌ DeepLinkHandler: Error parsing JWT:', error);
+      return {};
+    }
   }
 
   private convertToWebUrl(originalUrl: string, params: URLSearchParams): string {
