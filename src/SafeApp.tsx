@@ -69,14 +69,53 @@ function Auth0CallbackHandler() {
           if (callbackInfo) {
             console.log('📱 Auth0CallbackHandler: Found mobile callback info, clearing it');
             sessionStorage.removeItem('auth0_mobile_callback_info');
+            
+            // For CORS errors, try to get tokens silently since we have a valid auth code
+            console.log('📱 Auth0CallbackHandler: Attempting silent token retrieval...');
+            
+            try {
+              // Try to get access token silently - this might work even when CORS blocks the callback
+              const token = await getAccessTokenSilently({
+                cacheMode: 'off'
+              });
+              
+              if (token) {
+                console.log('✅ Auth0CallbackHandler: Silent token retrieval successful!');
+                console.log('📱 Auth0CallbackHandler: Auth code was valid, navigating to profile');
+                
+                // Mark that we processed a callback recently
+                sessionStorage.setItem('auth0_mobile_callback_processed_time', Date.now().toString());
+                
+                setTimeout(() => {
+                  window.location.hash = '/profile';
+                }, 1000);
+              } else {
+                console.log('⚠️ Auth0CallbackHandler: Silent token retrieval returned no token');
+                // Still navigate since auth code was valid
+                sessionStorage.setItem('auth0_mobile_callback_processed_time', Date.now().toString());
+                setTimeout(() => {
+                  window.location.hash = '/profile';
+                }, 1000);
+              }
+            } catch (silentError) {
+              console.log('❌ Auth0CallbackHandler: Silent token retrieval failed:', silentError);
+              console.log('📱 Auth0CallbackHandler: Still proceeding - auth code was valid from Auth0');
+              
+              // Even if silent auth fails, the auth code was valid (we got the callback)
+              // Navigate to profile and let Auth0 eventually sync
+              sessionStorage.setItem('auth0_mobile_callback_processed_time', Date.now().toString());
+              setTimeout(() => {
+                window.location.hash = '/profile';
+              }, 1000);
+            }
+          } else {
+            console.log('📱 Auth0CallbackHandler: No callback info found, but proceeding anyway');
+            // Even without callback info, if we got a callback URL, proceed
+            sessionStorage.setItem('auth0_mobile_callback_processed_time', Date.now().toString());
+            setTimeout(() => {
+              window.location.hash = '/profile';
+            }, 1000);
           }
-          
-          // For CORS errors, the authorization code was valid (Auth0 sent the callback)
-          // Navigate directly to profile since the user is authenticated
-          console.log('📱 Auth0CallbackHandler: Auth code was valid, navigating to profile');
-          setTimeout(() => {
-            window.location.hash = '/profile';
-          }, 1000);
           
         } else if (error instanceof Error && error.message && error.message.includes('Invalid state')) {
           console.log('🔄 Auth0CallbackHandler: State validation failed - this is common with mobile deep links');
@@ -130,6 +169,48 @@ function Auth0CallbackHandler() {
         setTimeout(() => {
           window.location.hash = '/profile';
         }, 500);
+      }
+    }
+    
+    // Additional monitoring for profile page without authentication
+    if (!isAuthenticated && !isLoading && window.location.hash.includes('/profile')) {
+      console.log('⚠️ Auth0CallbackHandler: On profile page but not authenticated - Auth0 may need more time to sync');
+      
+      // Check if we recently processed a callback
+      const recentCallback = sessionStorage.getItem('auth0_mobile_callback_processed_time');
+      if (recentCallback) {
+        const timeSinceCallback = Date.now() - parseInt(recentCallback);
+        console.log(`⏰ Auth0CallbackHandler: ${timeSinceCallback}ms since callback processing`);
+        
+        if (timeSinceCallback < 15000) { // Within 15 seconds
+          console.log('⏳ Auth0CallbackHandler: Recent callback detected, waiting for Auth0 to sync...');
+          
+          // Try one more time to get access token silently
+          if (timeSinceCallback > 5000 && timeSinceCallback < 6000) { // After 5 seconds, try once
+            console.log('🔄 Auth0CallbackHandler: Attempting final silent auth...');
+            getAccessTokenSilently({ cacheMode: 'off' }).then((token) => {
+              if (token) {
+                console.log('✅ Auth0CallbackHandler: Final silent auth successful!');
+                // Force a re-render to update auth state
+                window.location.reload();
+              }
+            }).catch((error) => {
+              console.log('❌ Auth0CallbackHandler: Final silent auth failed:', error);
+              // Redirect to auth page after timeout
+              setTimeout(() => {
+                console.log('🔄 Auth0CallbackHandler: Redirecting to auth page due to persistent auth failure');
+                window.location.hash = '/auth?error=mobile_auth_failed';
+              }, 3000);
+            });
+          }
+        } else {
+          console.log('❌ Auth0CallbackHandler: Auth0 sync timeout, callback may have failed');
+          sessionStorage.removeItem('auth0_mobile_callback_processed_time');
+          // Redirect to auth page
+          setTimeout(() => {
+            window.location.hash = '/auth?error=auth_timeout';
+          }, 1000);
+        }
       }
     }
   }, [isAuthenticated, isLoading]);
@@ -342,8 +423,6 @@ function SafeApp() {
           onRedirectCallback={handleRedirectCallback}
           useRefreshTokens={true}
           useRefreshTokensFallback={false}
-          // Add mobile-specific configurations to avoid CORS issues
-          skipRedirectCallback={Capacitor.isNativePlatform()}
         >
           {/* Add the callback handler that has access to useAuth0 hook */}
           <Auth0CallbackHandler />
