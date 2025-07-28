@@ -206,6 +206,11 @@ export class DeepLinkHandler {
             }
           } else {
             console.log('⚠️ DeepLinkHandler: Auth0 client not found, using manual token exchange');
+            console.log('🔄 DeepLinkHandler: About to call exchangeCodeForTokens with:', {
+              code: code?.substring(0, 10) + '...',
+              state: params.get('state'),
+              hasAccessToken: !!accessToken
+            });
             this.exchangeCodeForTokens(code!, params.get('state') || '', url, accessToken);
           }
         }, 100);
@@ -302,15 +307,18 @@ export class DeepLinkHandler {
         redirect_uri: 'com.texweb.app://callback',
       };
       
+      // Convert to URL-encoded format
+      const urlEncodedBody = new URLSearchParams(requestBody).toString();
+      
       console.log('📡 DeepLinkHandler: Making token exchange request to:', tokenUrl);
       console.log('📡 DeepLinkHandler: Request body:', { ...requestBody, code: code.substring(0, 10) + '...' });
       
       const response = await fetch(tokenUrl, {
         method: 'POST',
         headers: {
-          'Content-Type': 'application/json',
+          'Content-Type': 'application/x-www-form-urlencoded',
         },
-        body: JSON.stringify(requestBody),
+        body: urlEncodedBody,
       });
       
       console.log('📡 DeepLinkHandler: Token exchange response status:', response.status);
@@ -359,24 +367,38 @@ export class DeepLinkHandler {
 
   private storeAuth0Tokens(tokenData: any, clientId: string): void {
     console.log('💾 DeepLinkHandler: Storing Auth0 tokens...');
+    console.log('💾 DeepLinkHandler: Token data received:', {
+      hasAccessToken: !!tokenData.access_token,
+      hasIdToken: !!tokenData.id_token,
+      hasRefreshToken: !!tokenData.refresh_token,
+      scope: tokenData.scope,
+      tokenType: tokenData.token_type
+    });
     
     try {
+      // Get the audience from Auth0 config for the correct key format
+      const audience = 'https://dev-arrows.au.auth0.com/api/v2/';
+      const scope = tokenData.scope || 'openid profile email';
+      
       // Store tokens in the format that Auth0 React SDK expects
-      const auth0Key = `@@auth0spajs@@::${clientId}::https://dev-arrows.au.auth0.com/api/v2/::openid profile email`;
+      const auth0Key = `@@auth0spajs@@::${clientId}::${audience}::${scope}`;
+      
+      const expiresAt = Math.floor(Date.now() / 1000) + (tokenData.expires_in || 86400);
       
       const auth0Data = {
         body: {
           access_token: tokenData.access_token,
           id_token: tokenData.id_token,
-          scope: tokenData.scope || 'openid profile email',
+          scope: scope,
           expires_in: tokenData.expires_in || 86400,
           token_type: tokenData.token_type || 'Bearer',
         },
-        expiresAt: Math.floor(Date.now() / 1000) + (tokenData.expires_in || 86400)
+        expiresAt: expiresAt
       };
       
       localStorage.setItem(auth0Key, JSON.stringify(auth0Data));
       console.log('💾 DeepLinkHandler: Stored tokens with key:', auth0Key);
+      console.log('💾 DeepLinkHandler: Token expiration:', new Date(expiresAt * 1000).toISOString());
       
       // Also store user info if available in id_token
       if (tokenData.id_token) {
@@ -387,11 +409,20 @@ export class DeepLinkHandler {
           console.log('👤 DeepLinkHandler: Stored user info:', {
             sub: payload.sub,
             email: payload.email,
-            name: payload.name
+            name: payload.name,
+            picture: payload.picture
           });
         } catch (error) {
           console.warn('⚠️ DeepLinkHandler: Failed to parse ID token:', error);
         }
+      }
+      
+      // Verify storage was successful
+      const storedData = localStorage.getItem(auth0Key);
+      if (storedData) {
+        console.log('✅ DeepLinkHandler: Token storage verified successfully');
+      } else {
+        console.error('❌ DeepLinkHandler: Token storage failed - no data found after storage');
       }
       
     } catch (error) {
