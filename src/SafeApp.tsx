@@ -17,7 +17,7 @@ import { ProfileLayout } from "./pages/Profile/ProfileLayout";
 import { Orders } from "./pages/Orders/Orders";
 import { Addresses } from "./pages/Profile/Addresses/Addresses";
 import { Wishlist } from "./pages/Profile/Wishlist/Wishlist";
-import { AuthDebugger } from "./components/AuthDebugger";
+import { AuthFlowDebugger } from "./components/AuthFlowDebugger";
 import * as config from "./auth_config.json";
 import { getRedirectUri } from "./utils/getRedirectUri";
 import { deepLinkHandler } from "./utils/DeepLinkHandler";
@@ -32,6 +32,7 @@ function SafeApp() {
   const [isPending] = useTransition();
   const [authError, setAuthError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [debuggerVisible, setDebuggerVisible] = useState(false);
 
   useEffect(() => {
     console.log('🚀 SafeApp: Initializing app...');
@@ -259,8 +260,11 @@ function SafeApp() {
                   </Routes>
                   <Cart />
                   <ChatBot />
-                  {/* Auth Debugger - only show in development or when debugging */}
-                  {(import.meta.env.DEV || window.location.search.includes('debug=auth')) && <AuthDebugger />}
+                  {/* Enhanced Auth Flow Debugger - always available for debugging */}
+                  <AuthFlowDebugger 
+                    isVisible={debuggerVisible} 
+                    onToggle={() => setDebuggerVisible(!debuggerVisible)}
+                  />
                 </div>
               </WishlistProvider>
             </AuthProvider>
