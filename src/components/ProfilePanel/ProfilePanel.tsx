@@ -1,6 +1,7 @@
 import { Link } from "react-router-dom";
 import { useAuth } from "../../context/AuthContext";
 import { useCart } from "../../context/CartContext";
+import { useEffect } from "react";
 import { 
   User, 
   Package, 
@@ -20,15 +21,29 @@ interface ProfilePanelProps {
 }
 
 export const ProfilePanel = ({ isOpen, onClose }: ProfilePanelProps) => {
-  const { user, logout } = useAuth();
+  const { user, logout, isAuthenticated, loading } = useAuth();
   const { setIsCartOpen } = useCart();
 
+  // Log when profile panel state changes
+  useEffect(() => {
+    if (isOpen) {
+      console.log('👤 ProfilePanel: Panel opened, auth state:', {
+        isAuthenticated,
+        loading,
+        userEmail: (user as any)?.email,
+        userName: (user as any)?.name,
+      });
+    }
+  }, [isOpen, isAuthenticated, loading, user]);
+
   const handleCartClick = () => {
+    console.log('🛒 ProfilePanel: Cart button clicked');
     onClose(); // Close profile panel
     setIsCartOpen(true); // Open cart panel
   };
 
   const handleLogout = () => {
+    console.log('🚪 ProfilePanel: Logout button clicked');
     onClose(); // Close profile panel before logout
     logout(); // This will now use the configured logout URL from AuthContext
   };
@@ -100,16 +115,16 @@ export const ProfilePanel = ({ isOpen, onClose }: ProfilePanelProps) => {
           {/* Profile Info */}
           <div className="p-4 border-b bg-gray-50">
             <div className="flex items-center">
-              {user?.picture && (
+              {(user as any)?.picture && (
                 <img 
-                  src={user.picture} 
-                  alt={user.name || "Profile"} 
+                  src={(user as any).picture} 
+                  alt={(user as any).name || "Profile"} 
                   className="w-12 h-12 rounded-full border-2 border-rose-200"
                 />
               )}
               <div className="ml-4">
-                <h3 className="font-medium text-gray-900">{user?.name}</h3>
-                <p className="text-sm text-gray-600">{user?.email}</p>
+                <h3 className="font-medium text-gray-900">{(user as any)?.name}</h3>
+                <p className="text-sm text-gray-600">{(user as any)?.email}</p>
               </div>
             </div>
           </div>          {/* Menu Items - Scrollable */}

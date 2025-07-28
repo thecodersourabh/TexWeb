@@ -17,6 +17,7 @@ import { ProfileLayout } from "./pages/Profile/ProfileLayout";
 import { Orders } from "./pages/Orders/Orders";
 import { Addresses } from "./pages/Profile/Addresses/Addresses";
 import { Wishlist } from "./pages/Profile/Wishlist/Wishlist";
+import { AuthDebugger } from "./components/AuthDebugger";
 import * as config from "./auth_config.json";
 import { getRedirectUri } from "./utils/getRedirectUri";
 import { deepLinkHandler } from "./utils/DeepLinkHandler";
@@ -33,26 +34,54 @@ function SafeApp() {
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
+    console.log('🚀 SafeApp: Initializing app...');
+    console.log('📱 SafeApp: Platform check:', Capacitor.isNativePlatform() ? 'Native' : 'Web');
+    
     // Add a small delay to ensure everything is loaded
     const timer = setTimeout(() => {
+      console.log('⏰ SafeApp: Loading timer completed, setting isLoading to false');
       setIsLoading(false);
     }, 500);
 
     // Initialize deep link handler for mobile platforms
     if (Capacitor.isNativePlatform()) {
+      console.log('🔗 SafeApp: Initializing deep link handler for native platform');
       deepLinkHandler.initialize();
+      
+      // Add a listener to monitor deep link events
+      const linkListener = (url: string) => {
+        console.log('🔗 SafeApp: Deep link received:', url);
+      };
+      
+      deepLinkHandler.addListener(linkListener);
+      
+      // Listen for the custom auth callback event
+      const authCallbackListener = (event: any) => {
+        console.log('🔐 SafeApp: Auth callback event received:', event.detail);
+      };
+      
+      window.addEventListener('auth0-callback-processed', authCallbackListener);
+      
+      return () => {
+        clearTimeout(timer);
+        console.log('🧹 SafeApp: Cleaning up deep link handler');
+        deepLinkHandler.removeListener(linkListener);
+        window.removeEventListener('auth0-callback-processed', authCallbackListener);
+        deepLinkHandler.cleanup();
+      };
+    } else {
+      console.log('🌐 SafeApp: Running on web platform, skipping deep link initialization');
     }
 
     return () => {
       clearTimeout(timer);
-      if (Capacitor.isNativePlatform()) {
-        deepLinkHandler.cleanup();
-      }
     };
   }, []);
 
   // Cross-platform auth configuration
   const getAuthConfig = () => {
+    console.log('⚙️ SafeApp: Generating auth configuration...');
+    
     try {
       const baseConfig = {
         audience: config.authorizationParams.audience,
@@ -61,19 +90,23 @@ function SafeApp() {
 
       if (Capacitor.isNativePlatform()) {
         // Mobile app configuration
-        return {
+        const mobileConfig = {
           ...baseConfig,
           redirect_uri: 'com.texweb.app://callback',
         };
+        console.log('📱 SafeApp: Mobile auth config:', mobileConfig);
+        return mobileConfig;
       } else {
         // Web configuration
-        return {
+        const webConfig = {
           ...baseConfig,
           redirect_uri: getRedirectUri(),
         };
+        console.log('🌐 SafeApp: Web auth config:', webConfig);
+        return webConfig;
       }
     } catch (error) {
-      console.error('Auth config error:', error);
+      console.error('❌ SafeApp: Auth config error:', error);
       setAuthError('Authentication configuration error');
       return {
         audience: '',
@@ -85,16 +118,22 @@ function SafeApp() {
 
   // Cross-platform redirect handling
   const handleRedirectCallback = (appState: any) => {
+    console.log('🔄 SafeApp: Handling redirect callback...', appState);
+    
     try {
       if (Capacitor.isNativePlatform()) {
         // Mobile: Use React Router navigation
-        window.history.replaceState({}, '', appState?.returnTo || '/');
+        const redirectUrl = appState?.returnTo || '/';
+        console.log('📱 SafeApp: Mobile redirect to:', redirectUrl);
+        window.history.replaceState({}, '', redirectUrl);
       } else {
         // Web: Use window.location
-        window.location.href = appState?.returnTo || window.location.pathname;
+        const redirectUrl = appState?.returnTo || window.location.pathname;
+        console.log('🌐 SafeApp: Web redirect to:', redirectUrl);
+        window.location.href = redirectUrl;
       }
     } catch (error) {
-      console.error('Redirect callback error:', error);
+      console.error('❌ SafeApp: Redirect callback error:', error);
     }
   };
 
@@ -185,6 +224,8 @@ function SafeApp() {
                   </Routes>
                   <Cart />
                   <ChatBot />
+                  {/* Auth Debugger - only show in development or when debugging */}
+                  {(import.meta.env.DEV || window.location.search.includes('debug=auth')) && <AuthDebugger />}
                 </div>
               </WishlistProvider>
             </AuthProvider>

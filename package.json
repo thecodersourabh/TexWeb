@@ -8,7 +8,7 @@
   "scripts": {
     "dev": "vite",
     "web": "set VITE_WEB_BUILD=true && vite build && vite preview",
-    "prebuild": "npm install @rollup/rollup-linux-x64-gnu --force --save-dev --silent || echo 'Platform dependency handled'",
+    "prebuild": "npm install --force --save-dev --silent || echo 'Platform dependency handled'",
     "build": "vite build",
     "build:web": "set VITE_WEB_BUILD=true && vite build",
     "build:android": "npm run build && npx cap sync && npx cap open android",

@@ -2,13 +2,24 @@ import { Link } from "react-router-dom";
 import { Scissors, Heart, ShoppingCart, User } from "lucide-react";
 import { useCart } from "../context/CartContext";
 import { useAuth } from "../context/AuthContext";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { ProfilePanel } from "./ProfilePanel/ProfilePanel";
 
 export function Navigation() {
   const { setIsCartOpen, items } = useCart();
-  const { isAuthenticated, user, loginWithRedirect } = useAuth();
+  const { isAuthenticated, user, loginWithRedirect, loading } = useAuth();
   const [isProfileOpen, setIsProfileOpen] = useState(false);
+  
+  // Log authentication state changes
+  useEffect(() => {
+    console.log('🧭 Navigation: Auth state changed:', {
+      isAuthenticated,
+      loading,
+      userEmail: (user as any)?.email,
+      userName: (user as any)?.name,
+    });
+  }, [isAuthenticated, user, loading]);
+
   return (
     <nav className="bg-white border-b border-gray-100 px-4 py-3">
       <div className="max-w-7xl mx-auto flex items-center justify-between">
@@ -50,10 +61,10 @@ export function Navigation() {
               className="flex items-center space-x-2 hover:opacity-75 transition-opacity"
             >
               <img
-                src={user?.picture}
+                src={(user as any)?.picture}
                 className="h-8 w-8 rounded-full border-2 border-rose-200"
               />
-              <span className="text-sm text-gray-700 hidden md:inline">{user?.name}</span>
+              <span className="text-sm text-gray-700 hidden md:inline">{(user as any)?.name}</span>
             </button>
           ) : (
             <button
