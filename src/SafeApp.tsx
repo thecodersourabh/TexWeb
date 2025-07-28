@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { HashRouter as Router, Routes, Route } from "react-router-dom";
 import { useTransition } from "react";
-import { Auth0Provider } from "@auth0/auth0-react";
+import { Auth0Provider, useAuth0 } from "@auth0/auth0-react";
 import { Capacitor } from '@capacitor/core';
 import { Navigation } from "./components/Navigation";
 import { ChatBot } from "./components/ChatBot";
@@ -27,6 +27,81 @@ const routerFutureConfig = {
   v7_startTransition: true,
   v7_relativeSplatPath: true,
 };
+
+// Auth0 callback handler component that has access to useAuth0 hook
+function Auth0CallbackHandler() {
+  const { handleRedirectCallback, isAuthenticated, isLoading } = useAuth0();
+
+  useEffect(() => {
+    // Listen for our custom callback ready event
+    const handleAuth0CallbackReady = async (event: any) => {
+      console.log('🔐 Auth0CallbackHandler: Callback ready event received:', event.detail);
+      
+      try {
+        console.log('✅ Auth0CallbackHandler: Current URL when processing callback:', window.location.href);
+        
+        // Since DeepLinkHandler has already set the URL correctly, 
+        // let Auth0 SDK process it without additional parameters
+        console.log('✅ Auth0CallbackHandler: Triggering handleRedirectCallback with current URL');
+        
+        const result = await handleRedirectCallback();
+        console.log('✅ Auth0CallbackHandler: handleRedirectCallback completed successfully:', result);
+        
+        // Navigate to home after successful processing
+        setTimeout(() => {
+          console.log('🔄 Auth0CallbackHandler: Navigating to home page after successful auth');
+          window.location.hash = '/';
+        }, 1000);
+        
+      } catch (error) {
+        console.error('❌ Auth0CallbackHandler: Error in handleRedirectCallback:', error);
+        
+        // If state validation fails, it might be because Auth0 SDK doesn't recognize the mobile callback format
+        if (error instanceof Error && error.message && error.message.includes('Invalid state')) {
+          console.log('🔄 Auth0CallbackHandler: State validation failed - this is common with mobile deep links');
+          console.log('🔄 Auth0CallbackHandler: Attempting alternative approach...');
+          
+          // Check if we have the callback info stored
+          const callbackInfo = sessionStorage.getItem('auth0_mobile_callback_info');
+          if (callbackInfo) {
+            console.log('📱 Auth0CallbackHandler: Found stored mobile callback info');
+            const info = JSON.parse(callbackInfo);
+            console.log('� Auth0CallbackHandler: Mobile callback info:', info);
+            
+            // For mobile, let the app naturally process the authentication
+            // The presence of the authorization code should trigger Auth0's internal mechanisms
+            console.log('📱 Auth0CallbackHandler: Letting Auth0 process naturally...');
+            
+            // Clear the callback info since we've processed it
+            sessionStorage.removeItem('auth0_mobile_callback_info');
+            
+            // Navigate to home and let Auth0 sync naturally
+            setTimeout(() => {
+              console.log('📱 Auth0CallbackHandler: Navigating to home for natural Auth0 processing');
+              window.location.hash = '/';
+            }, 2000);
+          } else {
+            console.log('⚠️ Auth0CallbackHandler: No mobile callback info found, redirecting to home');
+            window.location.hash = '/';
+          }
+        }
+      }
+    };
+
+    window.addEventListener('auth0-callback-ready', handleAuth0CallbackReady);
+
+    return () => {
+      window.removeEventListener('auth0-callback-ready', handleAuth0CallbackReady);
+    };
+  }, [handleRedirectCallback]);
+
+  // Log auth state changes for debugging
+  useEffect(() => {
+    console.log('🔐 Auth0CallbackHandler: Auth state changed:', { isAuthenticated, isLoading });
+  }, [isAuthenticated, isLoading]);
+
+  return null; // This component doesn't render anything
+}
 
 function SafeApp() {
   const [isPending] = useTransition();
@@ -81,41 +156,9 @@ function SafeApp() {
       
       // Listen for auth0 callback ready event from DeepLinkHandler
       const auth0CallbackReadyListener = async (event: any) => {
-        console.log('🔐 SafeApp: Auth0 callback ready event received:', event.detail);
+        console.log('🔐 SafeApp: Auth0 callback ready event received (fallback):', event.detail);
         console.log('🔐 SafeApp: Current URL after callback setup:', window.location.href);
-        
-        try {
-          // Try to get Auth0 client instance and manually trigger callback processing
-          const auth0Client = (window as any).__auth0Client__ || 
-                             (window as any).auth0Client ||
-                             (window as any).Auth0Client;
-                             
-          if (auth0Client && typeof auth0Client.handleRedirectCallback === 'function') {
-            console.log('✅ SafeApp: Found Auth0 client, triggering handleRedirectCallback manually');
-            const result = await auth0Client.handleRedirectCallback();
-            console.log('✅ SafeApp: Auth0 handleRedirectCallback completed:', result);
-            
-            // Force a component re-render to update auth state
-            setTimeout(() => {
-              setAuthError(prev => prev === null ? '' : null); // Toggle to force re-render
-            }, 500);
-          } else {
-            console.warn('⚠️ SafeApp: Auth0 client not found, trying alternative approach');
-            
-            // Alternative: dispatch a popstate event to trigger Auth0's internal detection
-            const popStateEvent = new PopStateEvent('popstate', {
-              state: { auth0CallbackProcessing: true }
-            });
-            window.dispatchEvent(popStateEvent);
-            
-            // Force component re-render
-            setTimeout(() => {
-              setAuthError(prev => prev === null ? '' : null);
-            }, 100);
-          }
-        } catch (error) {
-          console.error('❌ SafeApp: Error processing Auth0 callback manually:', error);
-        }
+        console.log('ℹ️ SafeApp: Callback processing is now handled by Auth0CallbackHandler component');
       };
       
       window.addEventListener('auth0-callback-processed', authCallbackListener);
@@ -265,7 +308,11 @@ function SafeApp() {
           onRedirectCallback={handleRedirectCallback}
           useRefreshTokens={true}
           useRefreshTokensFallback={false}
+          // Add mobile-specific configurations to avoid CORS issues
+          skipRedirectCallback={Capacitor.isNativePlatform()}
         >
+          {/* Add the callback handler that has access to useAuth0 hook */}
+          <Auth0CallbackHandler />
           <CartProvider>
             <AuthProvider>
               <WishlistProvider>

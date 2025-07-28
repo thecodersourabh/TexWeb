@@ -406,10 +406,37 @@ export class DeepLinkHandler {
       sessionStorage.setItem('auth0_mobile_callback_info', JSON.stringify(callbackInfo));
       console.log('💾 DeepLinkHandler: Stored callback info:', callbackInfo);
       
-      // Instead of navigation, let's trigger the callback processing directly
-      // First, set the URL to what Auth0 expects
-      const callbackUrl = `/#/?code=${code}&state=${encodeURIComponent(state || '')}`;
-      console.log('🔄 DeepLinkHandler: Setting callback URL for Auth0 SDK:', callbackUrl);
+      // Parse the original URL to preserve ALL Auth0 parameters exactly as received
+      console.log('🔍 DeepLinkHandler: Parsing original Auth0 callback URL to preserve all parameters');
+      const urlObj = new URL(originalUrl);
+      let allParams = new URLSearchParams();
+      
+      // Extract params from wherever they are in the original URL
+      if (urlObj.search) {
+        const searchParams = new URLSearchParams(urlObj.search.substring(1));
+        for (const [key, value] of searchParams.entries()) {
+          allParams.set(key, value);
+        }
+      }
+      if (urlObj.hash && urlObj.hash.includes('=')) {
+        const hashParams = new URLSearchParams(urlObj.hash.substring(1));
+        for (const [key, value] of hashParams.entries()) {
+          allParams.set(key, value);
+        }
+      }
+      
+      // If no standard format, extract from full URL
+      if (allParams.toString() === '') {
+        const paramString = originalUrl.split('?')[1] || originalUrl.split('#')[1];
+        if (paramString) {
+          allParams = new URLSearchParams(paramString);
+        }
+      }
+      
+      // Build the callback URL with ALL original parameters preserved
+      const callbackUrl = `/#/?${allParams.toString()}`;
+      console.log('🔄 DeepLinkHandler: Setting callback URL with ALL original parameters:', callbackUrl);
+      console.log('🔍 DeepLinkHandler: Original URL params preserved:', Array.from(allParams.entries()));
       
       // Update the URL without navigation to preserve context
       window.history.replaceState({}, '', callbackUrl);
@@ -418,14 +445,8 @@ export class DeepLinkHandler {
       // Dispatch a custom event to notify Auth0 Provider about the callback
       console.log('📢 DeepLinkHandler: Dispatching auth0-callback-ready event');
       window.dispatchEvent(new CustomEvent('auth0-callback-ready', {
-        detail: { code, state, originalUrl }
+        detail: { code, state, originalUrl, allParams: Array.from(allParams.entries()) }
       }));
-      
-      // Also trigger the specific event that Auth0 listens for
-      const popStateEvent = new PopStateEvent('popstate', { 
-        state: { auth0Callback: true } 
-      });
-      window.dispatchEvent(popStateEvent);
       
     } catch (error) {
       console.error('❌ DeepLinkHandler: Error setting up Auth0 callback:', error);
