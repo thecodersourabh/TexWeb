@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth0 } from '@auth0/auth0-react';
+import { Capacitor } from '@capacitor/core';
 
 interface AuthFlowDebuggerProps {
   isVisible: boolean;
@@ -35,7 +36,8 @@ export const AuthFlowDebugger: React.FC<AuthFlowDebuggerProps> = ({ isVisible, o
     error,
     getAccessTokenSilently,
     loginWithRedirect,
-    logout
+    logout,
+    handleRedirectCallback
   } = useAuth0();
   
   const [debugInfo, setDebugInfo] = useState<DebugInfo | null>(null);
@@ -116,6 +118,11 @@ export const AuthFlowDebugger: React.FC<AuthFlowDebuggerProps> = ({ isVisible, o
 
       setRefreshCount(count => count + 1);
       console.log('🔍 AuthFlowDebugger: Debug info refreshed', { auth0State, urlInfo });
+      
+      // Auto-detect and suggest callback processing if we have a code but user is not authenticated
+      if (urlInfo.hash.includes('code=') && !isAuthenticated && !isLoading) {
+        console.log('🤖 AuthFlowDebugger: Detected callback URL but user not authenticated - callback might need manual processing');
+      }
     } catch (error) {
       console.error('Error refreshing debug info:', error);
     }
@@ -154,9 +161,18 @@ export const AuthFlowDebugger: React.FC<AuthFlowDebuggerProps> = ({ isVisible, o
 
   const simulateLogin = () => {
     console.log('🔐 Simulating login...');
+    
+    // Use the correct redirect URI based on platform
+    const redirectUri = Capacitor.isNativePlatform() 
+      ? 'com.texweb.app://callback'
+      : window.location.origin + '/#/';
+      
+    console.log('🔗 Using redirect URI:', redirectUri);
+    console.log('📱 Platform check:', Capacitor.isNativePlatform() ? 'Native' : 'Web');
+    
     loginWithRedirect({
       authorizationParams: {
-        redirect_uri: window.location.origin + '/#/'
+        redirect_uri: redirectUri
       }
     });
   };
@@ -168,6 +184,35 @@ export const AuthFlowDebugger: React.FC<AuthFlowDebuggerProps> = ({ isVisible, o
         returnTo: window.location.origin
       }
     });
+  };
+
+  const forceAuth0CallbackProcessing = async () => {
+    try {
+      console.log('🔄 Forcing Auth0 callback processing...');
+      console.log('🔍 Current URL:', window.location.href);
+      
+      // Check if we have a code in the URL
+      const urlParams = new URLSearchParams(window.location.hash.substring(2)); // Remove #/
+      const code = urlParams.get('code');
+      const state = urlParams.get('state');
+      
+      if (code) {
+        console.log('✅ Found authorization code, triggering handleRedirectCallback...');
+        console.log('📝 Code:', code.substring(0, 10) + '...');
+        console.log('📝 State:', state);
+        
+        // Use Auth0's handleRedirectCallback method
+        const result = await handleRedirectCallback();
+        console.log('✅ Auth0 callback processing result:', result);
+        
+        // Refresh debug info after processing
+        setTimeout(refreshDebugInfo, 1000);
+      } else {
+        console.warn('⚠️ No authorization code found in URL');
+      }
+    } catch (error) {
+      console.error('❌ Error forcing Auth0 callback processing:', error);
+    }
   };
 
   if (!isVisible) {
@@ -255,6 +300,12 @@ export const AuthFlowDebugger: React.FC<AuthFlowDebuggerProps> = ({ isVisible, o
           className="bg-green-600 hover:bg-green-700 px-3 py-1 rounded text-sm"
         >
           🧪 Test Auth0 Methods
+        </button>
+        <button
+          onClick={forceAuth0CallbackProcessing}
+          className="bg-yellow-600 hover:bg-yellow-700 px-3 py-1 rounded text-sm"
+        >
+          🔄 Force Callback Processing
         </button>
         <button
           onClick={clearAllStorage}

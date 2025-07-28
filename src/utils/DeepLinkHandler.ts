@@ -395,10 +395,6 @@ export class DeepLinkHandler {
     }
     
     try {
-      // Format the URL exactly as Auth0 React SDK expects for callback processing
-      const callbackUrl = `/#/?code=${code}&state=${encodeURIComponent(state || '')}`;
-      console.log('🔄 DeepLinkHandler: Setting up callback URL for Auth0 SDK:', callbackUrl);
-      
       // Store callback info for debugging
       const callbackInfo = {
         code: code.substring(0, 10) + '...',
@@ -410,15 +406,14 @@ export class DeepLinkHandler {
       sessionStorage.setItem('auth0_mobile_callback_info', JSON.stringify(callbackInfo));
       console.log('💾 DeepLinkHandler: Stored callback info:', callbackInfo);
       
-      // Update the URL to the callback format
-      window.history.replaceState({}, '', callbackUrl);
-      console.log('🔄 DeepLinkHandler: Updated browser URL for Auth0 processing');
+      // Instead of manipulating the URL and reloading, let's navigate directly to the callback page
+      // Auth0 React SDK will automatically detect and process the callback
+      const callbackUrl = `/#/?code=${code}&state=${encodeURIComponent(state || '')}`;
+      console.log('🔄 DeepLinkHandler: Navigating to callback URL for Auth0 SDK:', callbackUrl);
       
-      // Trigger a page reload to let Auth0 React SDK detect and process the callback
-      console.log('🔄 DeepLinkHandler: Reloading page for Auth0 SDK to process callback...');
-      setTimeout(() => {
-        window.location.reload();
-      }, 500);
+      // Use window.location.href to navigate to the callback URL
+      // This will trigger Auth0 SDK's callback processing without losing context
+      window.location.href = callbackUrl;
       
     } catch (error) {
       console.error('❌ DeepLinkHandler: Error setting up Auth0 callback:', error);
