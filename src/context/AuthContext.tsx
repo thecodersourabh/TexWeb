@@ -26,6 +26,21 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const [userCreated, setUserCreated] = useState(false);
   const [creatingUser, setCreatingUser] = useState(false);
+  const [authRefreshTrigger, setAuthRefreshTrigger] = useState(0);
+
+  // Listen for auth state refresh events from deep link handler
+  useEffect(() => {
+    const handleAuthRefresh = () => {
+      console.log('🔄 AuthContext: Auth refresh event received, triggering re-evaluation');
+      setAuthRefreshTrigger(prev => prev + 1);
+    };
+
+    window.addEventListener('auth-state-refresh', handleAuthRefresh);
+    
+    return () => {
+      window.removeEventListener('auth-state-refresh', handleAuthRefresh);
+    };
+  }, []);
 
   // Handle user creation when authenticated
   useEffect(() => {
@@ -117,7 +132,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     };
 
     createUserIfNeeded();
-  }, [isAuthenticated, user, userCreated, creatingUser]);
+  }, [isAuthenticated, user, userCreated, creatingUser, authRefreshTrigger]);
 
   const value = {
     isAuthenticated,

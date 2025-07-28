@@ -71,8 +71,16 @@ function SafeApp() {
         console.log('🔐 SafeApp: Auth navigation complete event received');
       };
       
+      // Listen for auth state refresh event
+      const authStateRefreshListener = () => {
+        console.log('🔐 SafeApp: Auth state refresh event received');
+        // Force a component update by triggering a state change
+        setAuthError(null); // This will cause a re-render
+      };
+      
       window.addEventListener('auth0-callback-processed', authCallbackListener);
       window.addEventListener('auth-navigation-complete', authNavigationListener);
+      window.addEventListener('auth-state-refresh', authStateRefreshListener);
       
       return () => {
         clearTimeout(timer);
@@ -80,6 +88,7 @@ function SafeApp() {
         deepLinkHandler.removeListener(linkListener);
         window.removeEventListener('auth0-callback-processed', authCallbackListener);
         window.removeEventListener('auth-navigation-complete', authNavigationListener);
+        window.removeEventListener('auth-state-refresh', authStateRefreshListener);
         deepLinkHandler.cleanup();
       };
     } else {
