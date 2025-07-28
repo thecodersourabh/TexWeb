@@ -79,9 +79,49 @@ function SafeApp() {
         setAuthError(null); // This will cause a re-render
       };
       
+      // Listen for auth0 callback ready event from DeepLinkHandler
+      const auth0CallbackReadyListener = async (event: any) => {
+        console.log('🔐 SafeApp: Auth0 callback ready event received:', event.detail);
+        console.log('🔐 SafeApp: Current URL after callback setup:', window.location.href);
+        
+        try {
+          // Try to get Auth0 client instance and manually trigger callback processing
+          const auth0Client = (window as any).__auth0Client__ || 
+                             (window as any).auth0Client ||
+                             (window as any).Auth0Client;
+                             
+          if (auth0Client && typeof auth0Client.handleRedirectCallback === 'function') {
+            console.log('✅ SafeApp: Found Auth0 client, triggering handleRedirectCallback manually');
+            const result = await auth0Client.handleRedirectCallback();
+            console.log('✅ SafeApp: Auth0 handleRedirectCallback completed:', result);
+            
+            // Force a component re-render to update auth state
+            setTimeout(() => {
+              setAuthError(prev => prev === null ? '' : null); // Toggle to force re-render
+            }, 500);
+          } else {
+            console.warn('⚠️ SafeApp: Auth0 client not found, trying alternative approach');
+            
+            // Alternative: dispatch a popstate event to trigger Auth0's internal detection
+            const popStateEvent = new PopStateEvent('popstate', {
+              state: { auth0CallbackProcessing: true }
+            });
+            window.dispatchEvent(popStateEvent);
+            
+            // Force component re-render
+            setTimeout(() => {
+              setAuthError(prev => prev === null ? '' : null);
+            }, 100);
+          }
+        } catch (error) {
+          console.error('❌ SafeApp: Error processing Auth0 callback manually:', error);
+        }
+      };
+      
       window.addEventListener('auth0-callback-processed', authCallbackListener);
       window.addEventListener('auth-navigation-complete', authNavigationListener);
       window.addEventListener('auth-state-refresh', authStateRefreshListener);
+      window.addEventListener('auth0-callback-ready', auth0CallbackReadyListener);
       
       return () => {
         clearTimeout(timer);
@@ -90,6 +130,7 @@ function SafeApp() {
         window.removeEventListener('auth0-callback-processed', authCallbackListener);
         window.removeEventListener('auth-navigation-complete', authNavigationListener);
         window.removeEventListener('auth-state-refresh', authStateRefreshListener);
+        window.removeEventListener('auth0-callback-ready', auth0CallbackReadyListener);
         deepLinkHandler.cleanup();
       };
     } else {
