@@ -134,86 +134,13 @@ export class DeepLinkHandler {
       if (code || accessToken) {
         console.log('✅ DeepLinkHandler: Valid Auth0 parameters found, processing...');
         
-        // Instead of manually handling the URL, let's trigger Auth0's built-in processing
-        // by simulating what would happen if the browser received this callback URL
-        
-        // First, store the callback data for Auth0 to process
-        const callbackData = {
-          code,
-          state: params.get('state'),
-          originalUrl: url,
-          timestamp: Date.now()
-        };
-        
-        // Store this for Auth0 to pick up
-        sessionStorage.setItem('pending_auth0_callback', JSON.stringify(callbackData));
-        console.log('� DeepLinkHandler: Stored callback data:', callbackData);
-        
-        // Convert to the format Auth0 expects
-        const webCompatibleUrl = this.convertToWebUrl(url, params);
-        console.log('🔄 DeepLinkHandler: Generated web-compatible URL:', webCompatibleUrl);
-        
-        // Update the browser URL to match what Auth0 expects
-        window.history.replaceState({}, '', webCompatibleUrl);
-        console.log('🔄 DeepLinkHandler: Updated browser URL to:', window.location.href);
-        
-        // Now trigger the events that Auth0 listens for
-        console.log('� DeepLinkHandler: Triggering browser events for Auth0...');
-        
-        // Dispatch hash change event
-        const hashChangeEvent = new HashChangeEvent('hashchange', {
-          oldURL: window.location.origin + '/#/',
-          newURL: window.location.href
-        });
-        window.dispatchEvent(hashChangeEvent);
-        
-        // Dispatch popstate event
-        const popStateEvent = new PopStateEvent('popstate', { 
-          state: { auth0_callback: true } 
-        });
-        window.dispatchEvent(popStateEvent);
-        
-        // Trigger a location change event
-        setTimeout(() => {
-          console.log('� DeepLinkHandler: Triggering location reload simulation...');
-          
-          // Dispatch a custom event to trigger Auth0 processing
-          window.dispatchEvent(new CustomEvent('auth0-mobile-callback', {
-            detail: callbackData
-          }));
-          
-          // Check if Auth0 SDK is available and manually trigger processing
-          console.log('🔍 DeepLinkHandler: Checking for Auth0 SDK...');
-          
-          // Look for Auth0 instance in common places
-          const auth0Client = (window as any).auth0Client || 
-                             (window as any).Auth0Client ||
-                             (window as any).__auth0Client__;
-          
-          if (auth0Client && typeof auth0Client.handleRedirectCallback === 'function') {
-            console.log('✅ DeepLinkHandler: Found Auth0 client, triggering handleRedirectCallback');
-            try {
-              auth0Client.handleRedirectCallback().then(() => {
-                console.log('✅ DeepLinkHandler: Auth0 handleRedirectCallback completed');
-                this.exchangeCodeForTokens(code!, params.get('state') || '', url, accessToken);
-              }).catch((error: any) => {
-                console.error('❌ DeepLinkHandler: Auth0 handleRedirectCallback failed:', error);
-                this.exchangeCodeForTokens(code!, params.get('state') || '', url, accessToken);
-              });
-            } catch (error) {
-              console.error('❌ DeepLinkHandler: Error calling handleRedirectCallback:', error);
-              this.exchangeCodeForTokens(code!, params.get('state') || '', url, accessToken);
-            }
-          } else {
-            console.log('⚠️ DeepLinkHandler: Auth0 client not found, using manual token exchange');
-            console.log('🔄 DeepLinkHandler: About to call exchangeCodeForTokens with:', {
-              code: code?.substring(0, 10) + '...',
-              state: params.get('state'),
-              hasAccessToken: !!accessToken
-            });
-            this.exchangeCodeForTokens(code!, params.get('state') || '', url, accessToken);
-          }
-        }, 100);
+        // Use Auth0 React SDK compatible approach instead of complex token exchange
+        if (code) {
+          this.processAuth0CallbackForReactSDK(code, state, url);
+        } else {
+          console.warn('⚠️ DeepLinkHandler: Only access token found, redirecting to profile');
+          window.location.hash = '/profile';
+        }
       } else {
         console.warn('⚠️ DeepLinkHandler: No valid Auth0 parameters found in callback URL');
       }
@@ -447,25 +374,6 @@ export class DeepLinkHandler {
     }
   }
 
-  private convertToWebUrl(originalUrl: string, params: URLSearchParams): string {
-    console.log('🔄 DeepLinkHandler: Converting deep link to web URL...');
-    console.log('🔄 DeepLinkHandler: Original URL:', originalUrl);
-    console.log('🔄 DeepLinkHandler: Parameters to convert:', Array.from(params.entries()));
-    
-    // Convert com.texweb.app://callback?params to /#/?params for Auth0 processing
-    const paramString = params.toString();
-    let webUrl: string;
-    
-    if (paramString) {
-      webUrl = `/#/?${paramString}`;
-      console.log('🔄 DeepLinkHandler: Generated web URL with params:', webUrl);
-    } else {
-      webUrl = '/#/';
-      console.log('🔄 DeepLinkHandler: Generated web URL without params:', webUrl);
-    }
-    
-    return webUrl;
-  }
 
   public addListener(callback: (url: string) => void): void {
     console.log('📢 DeepLinkHandler: Adding new listener. Total listeners will be:', this.listeners.length + 1);
@@ -476,6 +384,47 @@ export class DeepLinkHandler {
     const initialLength = this.listeners.length;
     this.listeners = this.listeners.filter(listener => listener !== callback);
     console.log(`📢 DeepLinkHandler: Removed listener. Listeners count: ${initialLength} → ${this.listeners.length}`);
+  }
+
+  private processAuth0CallbackForReactSDK(code: string | null, state: string | null, originalUrl: string): void {
+    console.log('🔄 DeepLinkHandler: Processing callback for Auth0 React SDK...');
+    
+    if (!code) {
+      console.error('❌ DeepLinkHandler: No authorization code found');
+      return;
+    }
+    
+    try {
+      // Format the URL exactly as Auth0 React SDK expects for callback processing
+      const callbackUrl = `/#/?code=${code}&state=${encodeURIComponent(state || '')}`;
+      console.log('🔄 DeepLinkHandler: Setting up callback URL for Auth0 SDK:', callbackUrl);
+      
+      // Store callback info for debugging
+      const callbackInfo = {
+        code: code.substring(0, 10) + '...',
+        state,
+        originalUrl,
+        timestamp: new Date().toISOString()
+      };
+      
+      sessionStorage.setItem('auth0_mobile_callback_info', JSON.stringify(callbackInfo));
+      console.log('💾 DeepLinkHandler: Stored callback info:', callbackInfo);
+      
+      // Update the URL to the callback format
+      window.history.replaceState({}, '', callbackUrl);
+      console.log('🔄 DeepLinkHandler: Updated browser URL for Auth0 processing');
+      
+      // Trigger a page reload to let Auth0 React SDK detect and process the callback
+      console.log('🔄 DeepLinkHandler: Reloading page for Auth0 SDK to process callback...');
+      setTimeout(() => {
+        window.location.reload();
+      }, 500);
+      
+    } catch (error) {
+      console.error('❌ DeepLinkHandler: Error setting up Auth0 callback:', error);
+      // Fallback to home page
+      window.location.hash = '/';
+    }
   }
 
   public cleanup(): void {
