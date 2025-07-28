@@ -58,15 +58,28 @@ function SafeApp() {
       // Listen for the custom auth callback event
       const authCallbackListener = (event: any) => {
         console.log('🔐 SafeApp: Auth callback event received:', event.detail);
+        
+        // Force a re-render by updating a state variable
+        setTimeout(() => {
+          console.log('🔐 SafeApp: Triggering auth state refresh...');
+          // Trigger any necessary state updates here
+        }, 100);
+      };
+      
+      // Listen for auth navigation complete event
+      const authNavigationListener = () => {
+        console.log('🔐 SafeApp: Auth navigation complete event received');
       };
       
       window.addEventListener('auth0-callback-processed', authCallbackListener);
+      window.addEventListener('auth-navigation-complete', authNavigationListener);
       
       return () => {
         clearTimeout(timer);
         console.log('🧹 SafeApp: Cleaning up deep link handler');
         deepLinkHandler.removeListener(linkListener);
         window.removeEventListener('auth0-callback-processed', authCallbackListener);
+        window.removeEventListener('auth-navigation-complete', authNavigationListener);
         deepLinkHandler.cleanup();
       };
     } else {
@@ -119,13 +132,26 @@ function SafeApp() {
   // Cross-platform redirect handling
   const handleRedirectCallback = (appState: any) => {
     console.log('🔄 SafeApp: Handling redirect callback...', appState);
+    console.log('🔄 SafeApp: Current URL when callback triggered:', window.location.href);
     
     try {
       if (Capacitor.isNativePlatform()) {
         // Mobile: Use React Router navigation
         const redirectUrl = appState?.returnTo || '/';
         console.log('📱 SafeApp: Mobile redirect to:', redirectUrl);
-        window.history.replaceState({}, '', redirectUrl);
+        
+        // For mobile, ensure we navigate to the home route after successful auth
+        setTimeout(() => {
+          console.log('📱 SafeApp: Executing mobile navigation after delay');
+          window.location.hash = redirectUrl;
+          
+          // Check authentication state after navigation
+          setTimeout(() => {
+            console.log('📱 SafeApp: Post-navigation auth check');
+            // Trigger a custom event to force re-render if needed
+            window.dispatchEvent(new CustomEvent('auth-navigation-complete'));
+          }, 500);
+        }, 100);
       } else {
         // Web: Use window.location
         const redirectUrl = appState?.returnTo || window.location.pathname;

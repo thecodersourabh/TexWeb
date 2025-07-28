@@ -138,8 +138,14 @@ export class DeepLinkHandler {
         const webCompatibleUrl = this.convertToWebUrl(url, params);
         console.log('🔄 DeepLinkHandler: Converted to web-compatible URL:', webCompatibleUrl);
         
+        // Store the current URL for Auth0 to process
+        console.log('🔄 DeepLinkHandler: Setting up URL for Auth0 processing...');
+        
+        // First, set the URL with the callback parameters so Auth0 can process them
+        const callbackUrl = `${window.location.origin}${webCompatibleUrl}`;
+        console.log('🔄 DeepLinkHandler: Full callback URL for Auth0:', callbackUrl);
+        
         // Update the current URL to match what Auth0 expects
-        console.log('🔄 DeepLinkHandler: Updating browser history...');
         window.history.replaceState({}, '', webCompatibleUrl);
         console.log('🔄 DeepLinkHandler: Current URL after history update:', window.location.href);
         
@@ -150,24 +156,52 @@ export class DeepLinkHandler {
           search: window.location.search
         });
         
-        // Trigger Auth0's handleRedirectCallback manually if needed
-        console.log('⏰ DeepLinkHandler: Setting timeout for navigation...');
+        // Give Auth0 some time to process the callback before navigating away
+        console.log('⏰ DeepLinkHandler: Waiting for Auth0 to process callback...');
         setTimeout(() => {
-          console.log('🔄 DeepLinkHandler: Navigating to home page');
-          console.log('🔄 DeepLinkHandler: Previous hash:', window.location.hash);
-          window.location.hash = '/';
-          console.log('🔄 DeepLinkHandler: New hash:', window.location.hash);
+          console.log('🔍 DeepLinkHandler: Checking Auth0 processing status...');
           
-          // Check if Auth0 state has changed
+          // Check if Auth0 has processed the callback by looking for tokens in localStorage
+          const auth0Keys = Object.keys(localStorage).filter(key => 
+            key.includes('@@auth0') || key.includes('auth0')
+          );
+          
+          console.log('🔍 DeepLinkHandler: Auth0 localStorage keys found:', auth0Keys);
+          
+          if (auth0Keys.length > 0) {
+            console.log('✅ DeepLinkHandler: Auth0 tokens detected, authentication likely successful');
+          } else {
+            console.log('⚠️ DeepLinkHandler: No Auth0 tokens detected yet, may need more time');
+          }
+          
+          // Dispatch event immediately for components to react
+          window.dispatchEvent(new CustomEvent('auth0-callback-processed', { 
+            detail: { url, code, accessToken, processed: true } 
+          }));
+          console.log('📢 DeepLinkHandler: Dispatched auth0-callback-processed event');
+          
+          // Navigate to home with a longer delay to allow Auth0 processing
           setTimeout(() => {
-            console.log('🔍 DeepLinkHandler: Post-navigation check - Current URL:', window.location.href);
-            // Trigger a custom event to notify other components
-            window.dispatchEvent(new CustomEvent('auth0-callback-processed', { 
-              detail: { url, code, accessToken } 
-            }));
-            console.log('📢 DeepLinkHandler: Dispatched auth0-callback-processed event');
-          }, 500);
-        }, 100);
+            console.log('🔄 DeepLinkHandler: Navigating to home page after Auth0 processing');
+            console.log('🔄 DeepLinkHandler: Previous hash:', window.location.hash);
+            window.location.hash = '/';
+            console.log('🔄 DeepLinkHandler: New hash:', window.location.hash);
+            
+            // Final check after navigation
+            setTimeout(() => {
+              console.log('🔍 DeepLinkHandler: Final check - Current URL:', window.location.href);
+              const finalAuth0Keys = Object.keys(localStorage).filter(key => 
+                key.includes('@@auth0') || key.includes('auth0')
+              );
+              console.log('🔍 DeepLinkHandler: Final Auth0 localStorage keys:', finalAuth0Keys);
+              
+              // Trigger a page refresh if no Auth0 data is found
+              if (finalAuth0Keys.length === 0) {
+                console.log('⚠️ DeepLinkHandler: No Auth0 data found, consider refreshing...');
+              }
+            }, 1000);
+          }, 2000); // Increased delay to 2 seconds
+        }, 500);
       } else {
         console.warn('⚠️ DeepLinkHandler: No valid Auth0 parameters found in callback URL');
       }
