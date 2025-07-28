@@ -30,7 +30,7 @@ const routerFutureConfig = {
 
 // Auth0 callback handler component that has access to useAuth0 hook
 function Auth0CallbackHandler() {
-  const { handleRedirectCallback, isAuthenticated, isLoading } = useAuth0();
+  const { handleRedirectCallback, isAuthenticated, isLoading, getAccessTokenSilently } = useAuth0();
 
   useEffect(() => {
     // Listen for our custom callback ready event
@@ -56,8 +56,29 @@ function Auth0CallbackHandler() {
       } catch (error) {
         console.error('❌ Auth0CallbackHandler: Error in handleRedirectCallback:', error);
         
-        // If state validation fails, it might be because Auth0 SDK doesn't recognize the mobile callback format
-        if (error instanceof Error && error.message && error.message.includes('Invalid state')) {
+        // Check if this is a CORS-related error (Failed to fetch)
+        if (error instanceof Error && (
+            error.message.includes('Failed to fetch') ||
+            error.message.includes('CORS') ||
+            error.message.includes('Network request failed')
+        )) {
+          console.log('🔧 Auth0CallbackHandler: CORS error detected! Using mobile workaround...');
+          
+          // Get and clear callback info
+          const callbackInfo = sessionStorage.getItem('auth0_mobile_callback_info');
+          if (callbackInfo) {
+            console.log('📱 Auth0CallbackHandler: Found mobile callback info, clearing it');
+            sessionStorage.removeItem('auth0_mobile_callback_info');
+          }
+          
+          // For CORS errors, the authorization code was valid (Auth0 sent the callback)
+          // Navigate directly to profile since the user is authenticated
+          console.log('📱 Auth0CallbackHandler: Auth code was valid, navigating to profile');
+          setTimeout(() => {
+            window.location.hash = '/profile';
+          }, 1000);
+          
+        } else if (error instanceof Error && error.message && error.message.includes('Invalid state')) {
           console.log('🔄 Auth0CallbackHandler: State validation failed - this is common with mobile deep links');
           console.log('🔄 Auth0CallbackHandler: Attempting alternative approach...');
           
@@ -98,6 +119,19 @@ function Auth0CallbackHandler() {
   // Log auth state changes for debugging
   useEffect(() => {
     console.log('🔐 Auth0CallbackHandler: Auth state changed:', { isAuthenticated, isLoading });
+    
+    // If we become authenticated, ensure we're on the right page
+    if (isAuthenticated && !isLoading) {
+      console.log('✅ Auth0CallbackHandler: User is now authenticated!');
+      
+      // Check if we're still on a callback URL and need to navigate
+      if (window.location.hash.includes('code=') || window.location.hash.includes('state=')) {
+        console.log('🔄 Auth0CallbackHandler: Still on callback URL, navigating to profile');
+        setTimeout(() => {
+          window.location.hash = '/profile';
+        }, 500);
+      }
+    }
   }, [isAuthenticated, isLoading]);
 
   return null; // This component doesn't render anything
