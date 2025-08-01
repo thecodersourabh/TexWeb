@@ -27,7 +27,6 @@ interface Address {
 }
 
 export const Addresses = () => {
-  console.log('📍 Addresses component mounted');
   const { user, isAuthenticated } = useAuth0();
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [editingAddress, setEditingAddress] = useState<Address | null>(null);
@@ -50,10 +49,8 @@ export const Addresses = () => {
 
   // Load addresses when component mounts
   useEffect(() => {
-    console.log('📍 Loading addresses, auth status:', { isAuthenticated, userId: user?.sub });
     const loadAddresses = async () => {
       if (!isAuthenticated || !user?.sub) {
-        console.log('📍 Not authenticated or no user ID, skipping address load');
         setLoading(false);
         return;
       }
@@ -85,7 +82,16 @@ export const Addresses = () => {
         setError(null);
       } catch (err) {
         console.error('Failed to load addresses:', err);
-        setError('Failed to load addresses. Please try again.');
+        // Check if this is a CORS error
+        if (err instanceof Error && (
+            err.message.includes('Failed to fetch') ||
+            err.message.includes('CORS') ||
+            err.message.includes('Network request failed')
+        )) {
+          setError('Unable to connect to server. This is a known issue that will be fixed soon. The address functionality is temporarily unavailable.');
+        } else {
+          setError('Failed to load addresses. Please try again.');
+        }
       } finally {
         setLoading(false);
       }
@@ -172,7 +178,6 @@ export const Addresses = () => {
       } else {
         // Create new address
         savedAddress = await AddressService.createAddress(addressData);
-        console.log('📡 API Response for new address:', savedAddress);
         const newAddress: Address = {
           id: savedAddress.addressId,
           type: savedAddress.type as 'home' | 'office' | 'work' | 'other',
@@ -225,7 +230,6 @@ export const Addresses = () => {
       }
 
       const updatedAddress = { ...addressToUpdate, isDefault: true };
-      console.log('🔄 Setting default address:', id);
       
       const updateData: UpdateAddressRequest = {
         id: id,
@@ -335,7 +339,6 @@ export const Addresses = () => {
           ) : (
             <div className="grid gap-3 sm:gap-4 md:gap-6 md:grid-cols-2">
               {addresses.map((address) => {
-                console.log('🏠 Rendering address:', address.id, 'isDefault:', address.isDefault, 'type:', address.type);
                 return (
                 <div
                   key={address.id}
@@ -374,7 +377,6 @@ export const Addresses = () => {
                           <>
                             <button
                               onClick={() => {
-                                console.log('🗑️ Delete button clicked for address:', address.id, 'isDefault:', address.isDefault);
                                 handleDelete(address.id!);
                               }}
                               className="inline-flex items-center px-2 py-1 text-sm text-red-600 hover:text-red-700 rounded-md hover:bg-red-50"

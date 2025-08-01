@@ -43,9 +43,25 @@ function Auth0CallbackHandler() {
           sessionStorage.removeItem('auth0_last_processed_code');
           localStorage.removeItem('auth0.is.authenticated');
           
+          // Clear all Auth0 related data
+          Object.keys(localStorage).forEach(key => {
+            if (key.startsWith('auth0') || key.startsWith('@@auth0spajs@@')) {
+              localStorage.removeItem(key);
+            }
+          });
+          Object.keys(sessionStorage).forEach(key => {
+            if (key.startsWith('auth0') || key.startsWith('@@auth0spajs@@')) {
+              sessionStorage.removeItem(key);
+            }
+          });
+          
+          console.log('🧹 Auth data cleared, redirecting to home');
+          
           // Navigate to home page after logout
           setTimeout(() => {
             window.location.hash = '/';
+            // Force page reload to ensure clean state
+            window.location.reload();
           }, 500);
           
           // Close the browser (no-op on Android)
