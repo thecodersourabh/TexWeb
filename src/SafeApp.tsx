@@ -37,30 +37,41 @@ function Auth0CallbackHandler() {
     // Handle the 'appUrlOpen' event and call `handleRedirectCallback` - Official Auth0 approach
     const setupListener = async () => {
       const listener = await CapApp.addListener('appUrlOpen', async ({ url }) => {
-        console.log('🔗 Auth0CallbackHandler: App URL opened:', url);
-        
         if (url.includes('state') && (url.includes('code') || url.includes('error'))) {
-          console.log('✅ Auth0CallbackHandler: Valid Auth0 callback detected, processing...');
+          // Prevent code reuse by checking if we've already processed this code
+          const urlParams = new URLSearchParams(url.split('?')[1] || '');
+          const code = urlParams.get('code');
+          const lastProcessedCode = sessionStorage.getItem('auth0_last_processed_code');
+          
+          if (code && code === lastProcessedCode) {
+            return;
+          }
+          
+          // Store the code to prevent reuse
+          if (code) {
+            sessionStorage.setItem('auth0_last_processed_code', code);
+          }
           
           try {
             await handleRedirectCallback(url);
-            console.log('✅ Auth0CallbackHandler: Callback processed successfully');
             
             // Navigate to profile after successful authentication
             setTimeout(() => {
               window.location.hash = '/profile';
             }, 1000);
           } catch (error) {
-            console.error('❌ Auth0CallbackHandler: Error processing callback:', error);
-            
             // Check if this is a CORS-related error
             if (error instanceof Error && (
                 error.message.includes('Failed to fetch') ||
                 error.message.includes('CORS') ||
                 error.message.includes('Network request failed')
             )) {
-              console.log('🔧 Auth0CallbackHandler: CORS error detected! Redirecting to profile anyway...');
               // Even with CORS error, the authorization code was valid
+              setTimeout(() => {
+                window.location.hash = '/profile';
+              }, 2000);
+            } else if (error instanceof Error && error.message.includes('Invalid authorization code')) {
+              // Code was already used, but auth might still be valid
               setTimeout(() => {
                 window.location.hash = '/profile';
               }, 2000);
@@ -77,7 +88,7 @@ function Auth0CallbackHandler() {
         try {
           await Browser.close();
         } catch (error) {
-          console.log('📱 Auth0CallbackHandler: Browser close (expected on Android):', error);
+          // Browser close expected to fail on Android
         }
       });
 
@@ -103,12 +114,10 @@ function Auth0CallbackHandler() {
     };
   }, [handleRedirectCallback]);
 
-  // Log auth state changes for debugging
+  // Clear processed code when authentication succeeds
   useEffect(() => {
-    console.log('🔐 Auth0CallbackHandler: Auth state changed:', { isAuthenticated, isLoading });
-    
     if (isAuthenticated && !isLoading) {
-      console.log('✅ Auth0CallbackHandler: User is now authenticated!');
+      sessionStorage.removeItem('auth0_last_processed_code');
     }
   }, [isAuthenticated, isLoading]);
 
@@ -121,12 +130,8 @@ function SafeApp() {
   const [debuggerVisible, setDebuggerVisible] = useState(false);
 
   useEffect(() => {
-    console.log('🚀 SafeApp: Initializing app...');
-    console.log('📱 SafeApp: Platform check:', Capacitor.isNativePlatform() ? 'Native' : 'Web');
-    
     // Add a small delay to ensure everything is loaded
     const timer = setTimeout(() => {
-      console.log('⏰ SafeApp: Loading timer completed, setting isLoading to false');
       setIsLoading(false);
     }, 500);
 
@@ -243,8 +248,6 @@ export default function App() {
     cacheLocation: 'localstorage' as const,
     useRefreshTokens: true,
   };
-
-  console.log('🔐 App: Auth0 configuration:', auth0Config);
 
   return (
     <Auth0Provider {...auth0Config}>

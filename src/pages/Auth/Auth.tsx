@@ -13,8 +13,6 @@ export const Auth = () => {
   const handleLogin = async () => {
     if (Capacitor.isNativePlatform()) {
       // Use Browser plugin for mobile - Official Auth0 approach
-      console.log('📱 Auth: Starting mobile login with Browser plugin');
-      
       const authUrl = `https://${config.domain}/authorize?` +
         `response_type=code&` +
         `client_id=${config.clientId}&` +
@@ -22,15 +20,12 @@ export const Auth = () => {
         `scope=openid%20profile%20email&` +
         `state=${Math.random().toString(36).substring(2)}`;
       
-      console.log('🔗 Auth: Opening browser with URL:', authUrl);
-      
       await Browser.open({
         url: authUrl,
         windowName: '_self'
       });
     } else {
       // Use regular Auth0 redirect for web
-      console.log('🌐 Auth: Starting web login with Auth0 redirect');
       loginWithRedirect();
     }
   };
@@ -39,8 +34,6 @@ export const Auth = () => {
   const handleLogout = async () => {
     if (Capacitor.isNativePlatform()) {
       // Use Browser plugin for mobile logout
-      console.log('📱 Auth: Starting mobile logout');
-      
       const logoutUrl = `https://${config.domain}/v2/logout?` +
         `client_id=${config.clientId}&` +
         `returnTo=${encodeURIComponent('com.texweb.app://callback')}`;
