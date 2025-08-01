@@ -236,7 +236,7 @@ export default function App() {
     clientId: config.clientId,
     authorizationParams: {
       redirect_uri: Capacitor.isNativePlatform() 
-        ? `com.texweb.app://dev-arrows.au.auth0.com/capacitor/com.texweb.app/callback`
+        ? `com.texweb.app://callback`
         : getRedirectUri(),
     },
     // Enable cache for better performance

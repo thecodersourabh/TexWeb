@@ -18,7 +18,7 @@ export const Auth = () => {
       const authUrl = `https://${config.domain}/authorize?` +
         `response_type=code&` +
         `client_id=${config.clientId}&` +
-        `redirect_uri=${encodeURIComponent('com.texweb.app://dev-arrows.au.auth0.com/capacitor/com.texweb.app/callback')}&` +
+        `redirect_uri=${encodeURIComponent('com.texweb.app://callback')}&` +
         `scope=openid%20profile%20email&` +
         `state=${Math.random().toString(36).substring(2)}`;
       
@@ -43,7 +43,7 @@ export const Auth = () => {
       
       const logoutUrl = `https://${config.domain}/v2/logout?` +
         `client_id=${config.clientId}&` +
-        `returnTo=${encodeURIComponent('com.texweb.app://dev-arrows.au.auth0.com/capacitor/com.texweb.app/callback')}`;
+        `returnTo=${encodeURIComponent('com.texweb.app://callback')}`;
       
       await Browser.open({
         url: logoutUrl,
