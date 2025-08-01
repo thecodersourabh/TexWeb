@@ -37,6 +37,27 @@ function Auth0CallbackHandler() {
     // Handle the 'appUrlOpen' event and call `handleRedirectCallback` - Official Auth0 approach
     const setupListener = async () => {
       const listener = await CapApp.addListener('appUrlOpen', async ({ url }) => {
+        // Handle logout callback
+        if (url.includes('com.texweb.app://logout')) {
+          // Clear any stored auth data
+          sessionStorage.removeItem('auth0_last_processed_code');
+          localStorage.removeItem('auth0.is.authenticated');
+          
+          // Navigate to home page after logout
+          setTimeout(() => {
+            window.location.hash = '/';
+          }, 500);
+          
+          // Close the browser (no-op on Android)
+          try {
+            await Browser.close();
+          } catch (error) {
+            // Browser close expected to fail on Android
+          }
+          return;
+        }
+        
+        // Handle authentication callback
         if (url.includes('state') && (url.includes('code') || url.includes('error'))) {
           // Prevent code reuse by checking if we've already processed this code
           const urlParams = new URLSearchParams(url.split('?')[1] || '');

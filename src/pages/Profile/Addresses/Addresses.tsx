@@ -27,6 +27,7 @@ interface Address {
 }
 
 export const Addresses = () => {
+  console.log('📍 Addresses component mounted');
   const { user, isAuthenticated } = useAuth0();
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [editingAddress, setEditingAddress] = useState<Address | null>(null);
@@ -49,8 +50,10 @@ export const Addresses = () => {
 
   // Load addresses when component mounts
   useEffect(() => {
+    console.log('📍 Loading addresses, auth status:', { isAuthenticated, userId: user?.sub });
     const loadAddresses = async () => {
       if (!isAuthenticated || !user?.sub) {
+        console.log('📍 Not authenticated or no user ID, skipping address load');
         setLoading(false);
         return;
       }
@@ -80,7 +83,9 @@ export const Addresses = () => {
           isDefault: addr.isDefault
         })));
         setError(null);
-      } catch {
+      } catch (err) {
+        console.error('Failed to load addresses:', err);
+        setError('Failed to load addresses. Please try again.');
       } finally {
         setLoading(false);
       }

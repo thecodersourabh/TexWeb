@@ -24,26 +24,17 @@ export const ProfilePanel = ({ isOpen, onClose }: ProfilePanelProps) => {
   const { user, logout, isAuthenticated, loading } = useAuth();
   const { setIsCartOpen } = useCart();
 
-  // Log when profile panel state changes
+  // Track profile panel state changes
   useEffect(() => {
-    if (isOpen) {
-      console.log('👤 ProfilePanel: Panel opened, auth state:', {
-        isAuthenticated,
-        loading,
-        userEmail: (user as any)?.email,
-        userName: (user as any)?.name,
-      });
-    }
+    // Panel opened tracking for analytics if needed
   }, [isOpen, isAuthenticated, loading, user]);
 
   const handleCartClick = () => {
-    console.log('🛒 ProfilePanel: Cart button clicked');
     onClose(); // Close profile panel
     setIsCartOpen(true); // Open cart panel
   };
 
   const handleLogout = () => {
-    console.log('🚪 ProfilePanel: Logout button clicked');
     onClose(); // Close profile panel before logout
     logout(); // This will now use the configured logout URL from AuthContext
   };
@@ -67,7 +58,7 @@ export const ProfilePanel = ({ isOpen, onClose }: ProfilePanelProps) => {
     {
       icon: Heart,
       label: "Wishlist",
-      link: "/profile/wishlist"
+      link: "/wishlist"
     },
     {
       icon: CreditCard,
@@ -77,7 +68,7 @@ export const ProfilePanel = ({ isOpen, onClose }: ProfilePanelProps) => {
     {
       icon: MapPin,
       label: "Saved Addresses",
-      link: "/profile/addresses"
+      link: "/addresses"
     },
     {
       icon: Settings,
