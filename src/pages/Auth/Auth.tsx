@@ -1,10 +1,59 @@
 import { useAuth0 } from '@auth0/auth0-react';
 import { useAuth } from '../../context/AuthContext';
+import { Capacitor } from '@capacitor/core';
+import { Browser } from '@capacitor/browser';
+import * as config from '../../auth_config.json';
 
 export const Auth = () => {
   // Always call hooks at the top level
   const { userCreated, creatingUser } = useAuth();
   const { loginWithRedirect, logout, user, isAuthenticated, isLoading } = useAuth0();
+
+  // Handle login with proper Capacitor integration
+  const handleLogin = async () => {
+    if (Capacitor.isNativePlatform()) {
+      // Use Browser plugin for mobile - Official Auth0 approach
+      console.log('📱 Auth: Starting mobile login with Browser plugin');
+      
+      const authUrl = `https://${config.domain}/authorize?` +
+        `response_type=code&` +
+        `client_id=${config.clientId}&` +
+        `redirect_uri=${encodeURIComponent('com.texweb.app://dev-arrows.au.auth0.com/capacitor/com.texweb.app/callback')}&` +
+        `scope=openid%20profile%20email&` +
+        `state=${Math.random().toString(36).substring(2)}`;
+      
+      console.log('🔗 Auth: Opening browser with URL:', authUrl);
+      
+      await Browser.open({
+        url: authUrl,
+        windowName: '_self'
+      });
+    } else {
+      // Use regular Auth0 redirect for web
+      console.log('🌐 Auth: Starting web login with Auth0 redirect');
+      loginWithRedirect();
+    }
+  };
+
+  // Handle logout with proper Capacitor integration  
+  const handleLogout = async () => {
+    if (Capacitor.isNativePlatform()) {
+      // Use Browser plugin for mobile logout
+      console.log('📱 Auth: Starting mobile logout');
+      
+      const logoutUrl = `https://${config.domain}/v2/logout?` +
+        `client_id=${config.clientId}&` +
+        `returnTo=${encodeURIComponent('com.texweb.app://dev-arrows.au.auth0.com/capacitor/com.texweb.app/callback')}`;
+      
+      await Browser.open({
+        url: logoutUrl,
+        windowName: '_self'
+      });
+    } else {
+      // Use regular Auth0 logout for web
+      logout({ logoutParams: { returnTo: window.location.origin } });
+    }
+  };
 
   if (isLoading || creatingUser) {
     return (
@@ -39,7 +88,7 @@ export const Auth = () => {
           </div>
           <div className="mt-8">
             <button
-              onClick={() => logout({ logoutParams: { returnTo: window.location.origin } })}
+              onClick={handleLogout}
               className="w-full flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-rose-600 hover:bg-rose-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-rose-500 transition-colors duration-200"
             >
               Sign Out
@@ -69,7 +118,7 @@ export const Auth = () => {
         </div>
         <div className="mt-8">
           <button
-            onClick={() => loginWithRedirect()}
+            onClick={handleLogin}
             className="w-full flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-rose-600 hover:bg-rose-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-rose-500 transition-colors duration-200"
           >
             Sign In / Sign Up with Auth0

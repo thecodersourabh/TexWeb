@@ -3,6 +3,8 @@ import { HashRouter as Router, Routes, Route } from "react-router-dom";
 import { useTransition } from "react";
 import { Auth0Provider, useAuth0 } from "@auth0/auth0-react";
 import { Capacitor } from '@capacitor/core';
+import { App as CapApp } from '@capacitor/app';
+import { Browser } from '@capacitor/browser';
 import { Navigation } from "./components/Navigation";
 import { ChatBot } from "./components/ChatBot";
 import { Cart } from "./components/Cart";
@@ -20,7 +22,6 @@ import { Wishlist } from "./pages/Profile/Wishlist/Wishlist";
 import { AuthFlowDebugger } from "./components/AuthFlowDebugger";
 import * as config from "./auth_config.json";
 import { getRedirectUri } from "./utils/getRedirectUri";
-import { deepLinkHandler } from "./utils/DeepLinkHandler";
 
 // Configure future flags for React Router v7
 const routerFutureConfig = {
@@ -28,130 +29,77 @@ const routerFutureConfig = {
   v7_relativeSplatPath: true,
 };
 
-// Auth0 callback handler component that has access to useAuth0 hook
+// Auth0 callback handler component that uses proper Capacitor integration
 function Auth0CallbackHandler() {
-  const { handleRedirectCallback, isAuthenticated, isLoading, getAccessTokenSilently } = useAuth0();
+  const { handleRedirectCallback, isAuthenticated, isLoading } = useAuth0();
 
   useEffect(() => {
-    // Listen for our custom callback ready event
-    const handleAuth0CallbackReady = async (event: any) => {
-      console.log('🔐 Auth0CallbackHandler: Callback ready event received:', event.detail);
-      
-      try {
-        console.log('✅ Auth0CallbackHandler: Current URL when processing callback:', window.location.href);
+    // Handle the 'appUrlOpen' event and call `handleRedirectCallback` - Official Auth0 approach
+    const setupListener = async () => {
+      const listener = await CapApp.addListener('appUrlOpen', async ({ url }) => {
+        console.log('🔗 Auth0CallbackHandler: App URL opened:', url);
         
-        // Since DeepLinkHandler has already set the URL correctly, 
-        // let Auth0 SDK process it without additional parameters
-        console.log('✅ Auth0CallbackHandler: Triggering handleRedirectCallback with current URL');
-        
-        const result = await handleRedirectCallback();
-        console.log('✅ Auth0CallbackHandler: handleRedirectCallback completed successfully:', result);
-        
-        // Navigate to home after successful processing
-        setTimeout(() => {
-          console.log('🔄 Auth0CallbackHandler: Navigating to home page after successful auth');
-          window.location.hash = '/';
-        }, 1000);
-        
-      } catch (error) {
-        console.error('❌ Auth0CallbackHandler: Error in handleRedirectCallback:', error);
-        
-        // Check if this is a CORS-related error (Failed to fetch)
-        if (error instanceof Error && (
-            error.message.includes('Failed to fetch') ||
-            error.message.includes('CORS') ||
-            error.message.includes('Network request failed')
-        )) {
-          console.log('🔧 Auth0CallbackHandler: CORS error detected! Using mobile workaround...');
+        if (url.includes('state') && (url.includes('code') || url.includes('error'))) {
+          console.log('✅ Auth0CallbackHandler: Valid Auth0 callback detected, processing...');
           
-          // Get and clear callback info
-          const callbackInfo = sessionStorage.getItem('auth0_mobile_callback_info');
-          if (callbackInfo) {
-            console.log('📱 Auth0CallbackHandler: Found mobile callback info, clearing it');
-            sessionStorage.removeItem('auth0_mobile_callback_info');
+          try {
+            await handleRedirectCallback(url);
+            console.log('✅ Auth0CallbackHandler: Callback processed successfully');
             
-            // For CORS errors, try to get tokens silently since we have a valid auth code
-            console.log('📱 Auth0CallbackHandler: Attempting silent token retrieval...');
-            
-            try {
-              // Try to get access token silently - this might work even when CORS blocks the callback
-              const token = await getAccessTokenSilently({
-                cacheMode: 'off'
-              });
-              
-              if (token) {
-                console.log('✅ Auth0CallbackHandler: Silent token retrieval successful!');
-                console.log('📱 Auth0CallbackHandler: Auth code was valid, navigating to profile');
-                
-                // Mark that we processed a callback recently
-                sessionStorage.setItem('auth0_mobile_callback_processed_time', Date.now().toString());
-                
-                setTimeout(() => {
-                  window.location.hash = '/profile';
-                }, 1000);
-              } else {
-                console.log('⚠️ Auth0CallbackHandler: Silent token retrieval returned no token');
-                // Still navigate since auth code was valid
-                sessionStorage.setItem('auth0_mobile_callback_processed_time', Date.now().toString());
-                setTimeout(() => {
-                  window.location.hash = '/profile';
-                }, 1000);
-              }
-            } catch (silentError) {
-              console.log('❌ Auth0CallbackHandler: Silent token retrieval failed:', silentError);
-              console.log('📱 Auth0CallbackHandler: Still proceeding - auth code was valid from Auth0');
-              
-              // Even if silent auth fails, the auth code was valid (we got the callback)
-              // Navigate to profile and let Auth0 eventually sync
-              sessionStorage.setItem('auth0_mobile_callback_processed_time', Date.now().toString());
-              setTimeout(() => {
-                window.location.hash = '/profile';
-              }, 1000);
-            }
-          } else {
-            console.log('📱 Auth0CallbackHandler: No callback info found, but proceeding anyway');
-            // Even without callback info, if we got a callback URL, proceed
-            sessionStorage.setItem('auth0_mobile_callback_processed_time', Date.now().toString());
+            // Navigate to profile after successful authentication
             setTimeout(() => {
               window.location.hash = '/profile';
             }, 1000);
-          }
-          
-        } else if (error instanceof Error && error.message && error.message.includes('Invalid state')) {
-          console.log('🔄 Auth0CallbackHandler: State validation failed - this is common with mobile deep links');
-          console.log('🔄 Auth0CallbackHandler: Attempting alternative approach...');
-          
-          // Check if we have the callback info stored
-          const callbackInfo = sessionStorage.getItem('auth0_mobile_callback_info');
-          if (callbackInfo) {
-            console.log('📱 Auth0CallbackHandler: Found stored mobile callback info');
-            const info = JSON.parse(callbackInfo);
-            console.log('� Auth0CallbackHandler: Mobile callback info:', info);
+          } catch (error) {
+            console.error('❌ Auth0CallbackHandler: Error processing callback:', error);
             
-            // For mobile, let the app naturally process the authentication
-            // The presence of the authorization code should trigger Auth0's internal mechanisms
-            console.log('📱 Auth0CallbackHandler: Letting Auth0 process naturally...');
-            
-            // Clear the callback info since we've processed it
-            sessionStorage.removeItem('auth0_mobile_callback_info');
-            
-            // Navigate to home and let Auth0 sync naturally
-            setTimeout(() => {
-              console.log('📱 Auth0CallbackHandler: Navigating to home for natural Auth0 processing');
-              window.location.hash = '/';
-            }, 2000);
-          } else {
-            console.log('⚠️ Auth0CallbackHandler: No mobile callback info found, redirecting to home');
-            window.location.hash = '/';
+            // Check if this is a CORS-related error
+            if (error instanceof Error && (
+                error.message.includes('Failed to fetch') ||
+                error.message.includes('CORS') ||
+                error.message.includes('Network request failed')
+            )) {
+              console.log('🔧 Auth0CallbackHandler: CORS error detected! Redirecting to profile anyway...');
+              // Even with CORS error, the authorization code was valid
+              setTimeout(() => {
+                window.location.hash = '/profile';
+              }, 2000);
+            } else {
+              // Other errors - redirect to auth page
+              setTimeout(() => {
+                window.location.hash = '/auth?error=callback_failed';
+              }, 2000);
+            }
           }
         }
-      }
+        
+        // Close the browser (no-op on Android)
+        try {
+          await Browser.close();
+        } catch (error) {
+          console.log('📱 Auth0CallbackHandler: Browser close (expected on Android):', error);
+        }
+      });
+
+      // Return cleanup function
+      return () => {
+        listener.remove();
+      };
     };
 
-    window.addEventListener('auth0-callback-ready', handleAuth0CallbackReady);
+    let cleanup: (() => void) | null = null;
+    
+    if (Capacitor.isNativePlatform()) {
+      setupListener().then((cleanupFn) => {
+        cleanup = cleanupFn;
+      });
+    }
 
+    // Cleanup on component unmount
     return () => {
-      window.removeEventListener('auth0-callback-ready', handleAuth0CallbackReady);
+      if (cleanup) {
+        cleanup();
+      }
     };
   }, [handleRedirectCallback]);
 
@@ -159,59 +107,8 @@ function Auth0CallbackHandler() {
   useEffect(() => {
     console.log('🔐 Auth0CallbackHandler: Auth state changed:', { isAuthenticated, isLoading });
     
-    // If we become authenticated, ensure we're on the right page
     if (isAuthenticated && !isLoading) {
       console.log('✅ Auth0CallbackHandler: User is now authenticated!');
-      
-      // Check if we're still on a callback URL and need to navigate
-      if (window.location.hash.includes('code=') || window.location.hash.includes('state=')) {
-        console.log('🔄 Auth0CallbackHandler: Still on callback URL, navigating to profile');
-        setTimeout(() => {
-          window.location.hash = '/profile';
-        }, 500);
-      }
-    }
-    
-    // Additional monitoring for profile page without authentication
-    if (!isAuthenticated && !isLoading && window.location.hash.includes('/profile')) {
-      console.log('⚠️ Auth0CallbackHandler: On profile page but not authenticated - Auth0 may need more time to sync');
-      
-      // Check if we recently processed a callback
-      const recentCallback = sessionStorage.getItem('auth0_mobile_callback_processed_time');
-      if (recentCallback) {
-        const timeSinceCallback = Date.now() - parseInt(recentCallback);
-        console.log(`⏰ Auth0CallbackHandler: ${timeSinceCallback}ms since callback processing`);
-        
-        if (timeSinceCallback < 15000) { // Within 15 seconds
-          console.log('⏳ Auth0CallbackHandler: Recent callback detected, waiting for Auth0 to sync...');
-          
-          // Try one more time to get access token silently
-          if (timeSinceCallback > 5000 && timeSinceCallback < 6000) { // After 5 seconds, try once
-            console.log('🔄 Auth0CallbackHandler: Attempting final silent auth...');
-            getAccessTokenSilently({ cacheMode: 'off' }).then((token) => {
-              if (token) {
-                console.log('✅ Auth0CallbackHandler: Final silent auth successful!');
-                // Force a re-render to update auth state
-                window.location.reload();
-              }
-            }).catch((error) => {
-              console.log('❌ Auth0CallbackHandler: Final silent auth failed:', error);
-              // Redirect to auth page after timeout
-              setTimeout(() => {
-                console.log('🔄 Auth0CallbackHandler: Redirecting to auth page due to persistent auth failure');
-                window.location.hash = '/auth?error=mobile_auth_failed';
-              }, 3000);
-            });
-          }
-        } else {
-          console.log('❌ Auth0CallbackHandler: Auth0 sync timeout, callback may have failed');
-          sessionStorage.removeItem('auth0_mobile_callback_processed_time');
-          // Redirect to auth page
-          setTimeout(() => {
-            window.location.hash = '/auth?error=auth_timeout';
-          }, 1000);
-        }
-      }
     }
   }, [isAuthenticated, isLoading]);
 
@@ -220,7 +117,6 @@ function Auth0CallbackHandler() {
 
 function SafeApp() {
   const [isPending] = useTransition();
-  const [authError, setAuthError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [debuggerVisible, setDebuggerVisible] = useState(false);
 
@@ -234,269 +130,125 @@ function SafeApp() {
       setIsLoading(false);
     }, 500);
 
-    // Initialize deep link handler for mobile platforms
-    if (Capacitor.isNativePlatform()) {
-      console.log('🔗 SafeApp: Initializing deep link handler for native platform');
-      deepLinkHandler.initialize();
-      
-      // Add a listener to monitor deep link events
-      const linkListener = (url: string) => {
-        console.log('🔗 SafeApp: Deep link received:', url);
-      };
-      
-      deepLinkHandler.addListener(linkListener);
-      
-      // Listen for the custom auth callback event
-      const authCallbackListener = (event: any) => {
-        console.log('🔐 SafeApp: Auth callback event received:', event.detail);
-        
-        // Force a re-render by updating a state variable
-        setTimeout(() => {
-          console.log('🔐 SafeApp: Triggering auth state refresh...');
-          // Trigger any necessary state updates here
-        }, 100);
-      };
-      
-      // Listen for auth navigation complete event
-      const authNavigationListener = () => {
-        console.log('🔐 SafeApp: Auth navigation complete event received');
-      };
-      
-      // Listen for auth state refresh event
-      const authStateRefreshListener = () => {
-        console.log('🔐 SafeApp: Auth state refresh event received');
-        // Force a component update by triggering a state change
-        setAuthError(null); // This will cause a re-render
-      };
-      
-      // Listen for auth0 callback ready event from DeepLinkHandler
-      const auth0CallbackReadyListener = async (event: any) => {
-        console.log('🔐 SafeApp: Auth0 callback ready event received (fallback):', event.detail);
-        console.log('🔐 SafeApp: Current URL after callback setup:', window.location.href);
-        console.log('ℹ️ SafeApp: Callback processing is now handled by Auth0CallbackHandler component');
-      };
-      
-      window.addEventListener('auth0-callback-processed', authCallbackListener);
-      window.addEventListener('auth-navigation-complete', authNavigationListener);
-      window.addEventListener('auth-state-refresh', authStateRefreshListener);
-      window.addEventListener('auth0-callback-ready', auth0CallbackReadyListener);
-      
-      return () => {
-        clearTimeout(timer);
-        console.log('🧹 SafeApp: Cleaning up deep link handler');
-        deepLinkHandler.removeListener(linkListener);
-        window.removeEventListener('auth0-callback-processed', authCallbackListener);
-        window.removeEventListener('auth-navigation-complete', authNavigationListener);
-        window.removeEventListener('auth-state-refresh', authStateRefreshListener);
-        window.removeEventListener('auth0-callback-ready', auth0CallbackReadyListener);
-        deepLinkHandler.cleanup();
-      };
-    } else {
-      console.log('🌐 SafeApp: Running on web platform, skipping deep link initialization');
-    }
-
-    return () => {
-      clearTimeout(timer);
-    };
+    return () => clearTimeout(timer);
   }, []);
 
-  // Cross-platform auth configuration
-  const getAuthConfig = () => {
-    console.log('⚙️ SafeApp: Generating auth configuration...');
-    
-    try {
-      const baseConfig = {
-        audience: config.authorizationParams.audience,
-        scope: "openid profile email",
-      };
-
-      if (Capacitor.isNativePlatform()) {
-        // Mobile app configuration
-        const mobileConfig = {
-          ...baseConfig,
-          redirect_uri: 'com.texweb.app://callback',
-        };
-        console.log('📱 SafeApp: Mobile auth config:', mobileConfig);
-        return mobileConfig;
-      } else {
-        // Web configuration
-        const webConfig = {
-          ...baseConfig,
-          redirect_uri: getRedirectUri(),
-        };
-        console.log('🌐 SafeApp: Web auth config:', webConfig);
-        return webConfig;
-      }
-    } catch (error) {
-      console.error('❌ SafeApp: Auth config error:', error);
-      setAuthError('Authentication configuration error');
-      return {
-        audience: '',
-        scope: "openid profile email",
-        redirect_uri: window.location.origin,
-      };
-    }
-  };
-
-  // Cross-platform redirect handling
-  const handleRedirectCallback = (appState: any) => {
-    console.log('🔄 SafeApp: Handling redirect callback...', appState);
-    console.log('🔄 SafeApp: Current URL when callback triggered:', window.location.href);
-    
-    try {
-      if (Capacitor.isNativePlatform()) {
-        // Mobile: Use React Router navigation
-        const redirectUrl = appState?.returnTo || '/';
-        console.log('📱 SafeApp: Mobile redirect to:', redirectUrl);
-        
-        // For mobile, ensure we navigate to the home route after successful auth
-        setTimeout(() => {
-          console.log('📱 SafeApp: Executing mobile navigation after delay');
-          window.location.hash = redirectUrl;
-          
-          // Check authentication state after navigation
-          setTimeout(() => {
-            console.log('📱 SafeApp: Post-navigation auth check');
-            // Trigger a custom event to force re-render if needed
-            window.dispatchEvent(new CustomEvent('auth-navigation-complete'));
-          }, 500);
-        }, 100);
-      } else {
-        // Web: Use window.location
-        const redirectUrl = appState?.returnTo || window.location.pathname;
-        console.log('🌐 SafeApp: Web redirect to:', redirectUrl);
-        window.location.href = redirectUrl;
-      }
-    } catch (error) {
-      console.error('❌ SafeApp: Redirect callback error:', error);
-    }
-  };
-
+  // Show loading screen
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-white flex items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-rose-600 mx-auto mb-4"></div>
-          <p className="text-gray-600">Loading TexWeb...</p>
-          <p className="text-sm text-gray-500 mt-2">Platform: {Capacitor.getPlatform()}</p>
-        </div>
+      <div style={{ 
+        display: 'flex', 
+        justifyContent: 'center', 
+        alignItems: 'center', 
+        height: '100vh',
+        fontSize: '18px',
+        color: '#666'
+      }}>
+        🚀 Initializing TexWeb...
       </div>
     );
   }
 
-  if (authError) {
-    return (
-      <div className="min-h-screen bg-white flex items-center justify-center">
-        <div className="max-w-md w-full mx-4 bg-red-50 border border-red-200 rounded-lg p-6">
-          <div className="text-center">
-            <div className="text-red-500 text-4xl mb-4">⚠️</div>
-            <h1 className="text-lg font-semibold text-red-800 mb-2">
-              Authentication Error
-            </h1>
-            <p className="text-red-600 mb-4">
-              {authError}
-            </p>
-            <button
-              onClick={() => {
-                setAuthError(null);
-                setIsLoading(true);
-                window.location.reload();
-              }}
-              className="bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded"
-            >
-              Retry
-            </button>
+  return (
+    <Router future={routerFutureConfig}>
+      <div style={{ paddingBottom: isPending ? '20px' : '0px' }}>
+        {isPending && (
+          <div style={{ 
+            position: 'fixed', 
+            top: '10px', 
+            right: '10px', 
+            background: '#007bff', 
+            color: 'white', 
+            padding: '8px 12px', 
+            borderRadius: '4px',
+            zIndex: 1000 
+          }}>
+            Loading...
           </div>
-        </div>
-      </div>
-    );
-  }
+        )}
 
-  try {
-    return (
-      <Router future={routerFutureConfig}>
-        <Auth0Provider
-          domain={config.domain}
-          clientId={config.clientId}
-          authorizationParams={getAuthConfig()}
-          cacheLocation="localstorage"
-          onRedirectCallback={handleRedirectCallback}
-          useRefreshTokens={true}
-          useRefreshTokensFallback={false}
-        >
-          {/* Add the callback handler that has access to useAuth0 hook */}
-          <Auth0CallbackHandler />
+        <AuthProvider>
           <CartProvider>
-            <AuthProvider>
-              <WishlistProvider>
-                <div className="min-h-screen bg-white">
-                  <Navigation />
-                  {isPending && (
-                    <div className="fixed top-0 left-0 w-full h-1">
-                      <div
-                        className="h-full bg-rose-600 animate-[loading_1s_ease-in-out_infinite]"
-                        style={{ width: "25%" }}
-                      />
-                    </div>
-                  )}
-                  <Routes>
-                    <Route path="/" element={<Home />} />
-                    <Route path="/about" element={<About />} />
-                    <Route path="/design/*" element={<Design />} />
-                    <Route path="/auth" element={<Auth />} />
-                    <Route path="/orders" element={<Orders />} />
-                    <Route path="/profile" element={<ProfileLayout />}>
-                      <Route path="my-designs" element={<Design />} />
-                      <Route path="wishlist" element={<Wishlist />} />
-                      <Route
-                        path="payments"
-                        element={<div>Payments Coming Soon</div>}
-                      />
-                      <Route path="addresses" element={<Addresses />} />
-                      <Route
-                        path="settings"
-                        element={<div>Settings Coming Soon</div>}
-                      />
-                    </Route>
-                  </Routes>
-                  <Cart />
-                  <ChatBot />
-                  {/* Enhanced Auth Flow Debugger - always available for debugging */}
+            <WishlistProvider>
+              <Auth0CallbackHandler />
+              
+              <div style={{ position: 'relative' }}>
+                <Navigation />
+                
+                {/* Debug toggle button - only show in development */}
+                {process.env.NODE_ENV === 'development' && (
+                  <button
+                    onClick={() => setDebuggerVisible(!debuggerVisible)}
+                    style={{
+                      position: 'fixed',
+                      bottom: '20px',
+                      right: '20px',
+                      zIndex: 1000,
+                      background: '#28a745',
+                      color: 'white',
+                      border: 'none',
+                      borderRadius: '50%',
+                      width: '50px',
+                      height: '50px',
+                      fontSize: '20px',
+                      cursor: 'pointer',
+                      boxShadow: '0 2px 10px rgba(0,0,0,0.2)'
+                    }}
+                    title="Toggle Auth Debugger"
+                  >
+                    🐛
+                  </button>
+                )}
+                
+                {/* Auth Flow Debugger - only show in development */}
+                {debuggerVisible && process.env.NODE_ENV === 'development' && (
                   <AuthFlowDebugger 
                     isVisible={debuggerVisible} 
-                    onToggle={() => setDebuggerVisible(!debuggerVisible)}
+                    onToggle={() => setDebuggerVisible(!debuggerVisible)} 
                   />
-                </div>
-              </WishlistProvider>
-            </AuthProvider>
+                )}
+
+                <Routes>
+                  <Route path="/" element={<Home />} />
+                  <Route path="/about" element={<About />} />
+                  <Route path="/design/*" element={<Design />} />
+                  <Route path="/auth" element={<Auth />} />
+                  <Route path="/profile/*" element={<ProfileLayout />} />
+                  <Route path="/orders" element={<Orders />} />
+                  <Route path="/addresses" element={<Addresses />} />
+                  <Route path="/wishlist" element={<Wishlist />} />
+                </Routes>
+
+                <Cart />
+                <ChatBot />
+              </div>
+            </WishlistProvider>
           </CartProvider>
-        </Auth0Provider>
-      </Router>
-    );
-  } catch (error) {
-    console.error('App render error:', error);
-    return (
-      <div className="min-h-screen bg-white flex items-center justify-center">
-        <div className="max-w-md w-full mx-4 bg-yellow-50 border border-yellow-200 rounded-lg p-6">
-          <div className="text-center">
-            <div className="text-yellow-500 text-4xl mb-4">⚠️</div>
-            <h1 className="text-lg font-semibold text-yellow-800 mb-2">
-              Application Error
-            </h1>
-            <p className="text-yellow-600 mb-4">
-              Something went wrong while loading the application.
-            </p>
-            <button
-              onClick={() => window.location.reload()}
-              className="bg-yellow-500 hover:bg-yellow-600 text-white px-4 py-2 rounded"
-            >
-              Refresh Page
-            </button>
-          </div>
-        </div>
+        </AuthProvider>
       </div>
-    );
-  }
+    </Router>
+  );
 }
 
-export default SafeApp;
+export default function App() {
+  const auth0Config = {
+    domain: config.domain,
+    clientId: config.clientId,
+    authorizationParams: {
+      redirect_uri: Capacitor.isNativePlatform() 
+        ? `com.texweb.app://dev-arrows.au.auth0.com/capacitor/com.texweb.app/callback`
+        : getRedirectUri(),
+    },
+    // Enable cache for better performance
+    cacheLocation: 'localstorage' as const,
+    useRefreshTokens: true,
+  };
+
+  console.log('🔐 App: Auth0 configuration:', auth0Config);
+
+  return (
+    <Auth0Provider {...auth0Config}>
+      <SafeApp />
+    </Auth0Provider>
+  );
+}
